@@ -10,8 +10,16 @@ interface CorsAnywhereOptions {
     setHeaders: {[header: string]: string};
     corsMaxAge: string;
     helpFile: string;
-    httpsOptions: https.ServerOptions;
+    httpsOptions: import('https').ServerOptions;
     httpProxyOptions: {[option: string]: any};
 }
+
+interface RateLimitOptions {
+    maxRequestsPerPeriod: number;
+    periodInMinutes: number;
+    sites: string[];
+}
+
+export declare function createRateLimitChecker(options: RateLimitOptions): (host: string) => boolean;
 
 export declare function createServer(options: CorsAnywhereOptions): void;

@@ -1,14 +1,15 @@
 import httpProxy from 'http-proxy';
 import {isIPv4, isIPv6} from 'net';
 import regexp_tld from './regexp-top-level-domain';
+import createRateLimiter from './rate-limit';
 import {getProxyForUrl} from 'proxy-from-env';
 import {URL} from 'url';
 import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import type stream from 'stream';
-import type { EventEmitter } from 'stream';
-import { OutgoingMessage } from 'http';
+import type {EventEmitter} from 'stream';
+import type {OutgoingMessage} from 'http';
 
 
 declare module 'http' {
@@ -447,3 +448,5 @@ export function createServer(options: CorsAnywhereOptions) {
 
     return server;
 }
+
+export const createRateLimitChecker = createRateLimiter;
