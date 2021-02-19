@@ -3,6 +3,7 @@ import {isIPv4, isIPv6} from 'net';
 import regexp_tld from './regexp-top-level-domain';
 import createRateLimiter from './rate-limit';
 import {getProxyForUrl} from 'proxy-from-env';
+import type {Url} from 'url';
 import {URL} from 'url';
 import http from 'http';
 import https from 'https';
@@ -13,20 +14,30 @@ import type {OutgoingMessage} from 'http';
 
 
 declare module 'http' {
-  interface IncomingMessage {
-    corsAnywhereRequestState: {
-      location: URL;
-      getProxyForUrl: (url: string | URL) => string;
-      proxyBaseUrl: string;
-      maxRedirects: number;
-      redirectCount: number;
-      corsMaxAge: string;
-    };
-  }
+    interface corsAnywhereRequestStateOptions {
+        location: URL;
+        getProxyForUrl: (url: string | Url) => string;
+        proxyBaseUrl: string;
+        maxRedirects: number;
+        redirectCount: number;
+        corsMaxAge: string;
+    }
+    interface IncomingMessage {
+        corsAnywhereRequestState: Partial<corsAnywhereRequestStateOptions>;
+    }
+    interface OutgoingMessage {
+        abort: () => void;
+    }
+}
+
+declare module 'events' {
+    interface EventEmitter {
+        web: (request: http.IncomingMessage, response: http.ServerResponse, options: httpProxy.ServerOptions) => void;
+    }
 }
 
 interface CorsAnywhereOptions {
-    getProxyForUrl: (url: string | URL) => string;
+    getProxyForUrl: (url: string | Url) => string;
     maxRedirects: number;
     originBlacklist: string[];
     originWhitelist: string[];
@@ -38,7 +49,7 @@ interface CorsAnywhereOptions {
     corsMaxAge: string;
     helpFile: string;
     httpsOptions: https.ServerOptions;
-    httpProxyOptions: {[option: string]: any};
+    httpProxyOptions: http.ServerOptions;
 }
 
 const help_text = {};
@@ -49,7 +60,7 @@ function showUsage(help_file: string, headers: http.IncomingHttpHeaders, respons
         response.writeHead(200, headers);
         response.end(help_text[help_file]);
     } else {
-        fs.readFile(help_file, 'utf8', function (err: any, data: any) {
+        fs.readFile(help_file, 'utf8', (err: NodeJS.ErrnoException, data: string) => {
             if (err) {
                 console.error(err);
                 response.writeHead(500, headers);
@@ -69,16 +80,13 @@ function showUsage(help_file: string, headers: http.IncomingHttpHeaders, respons
 function isValidHostName(hostname: string): boolean {
     return !!(
         regexp_tld.test(hostname) ||
-    isIPv4(hostname) ||
-    isIPv6(hostname)
+        isIPv4(hostname) ||
+        isIPv6(hostname)
     );
 }
 
 /**
  * Adds CORS headers to the response headers.
- *
- * @param headers {object} Response headers
- * @param request {ServerRequest}
  */
 function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessage): http.IncomingHttpHeaders {
     headers['access-control-allow-origin'] = '*';
@@ -121,11 +129,11 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
                 const proxyReqOn = proxyReq.on;
                 // Intercepts the handler that connects proxyRes to res.
                 // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L146-L158
-                proxyReq.on = function (eventName: string, listener: (...args: any) => void) {
+                proxyReq.on = (eventName: string, listener: (...args: any) => void) => {
                     if (eventName !== 'response') {
-                        return proxyReqOn.call(this, eventName, listener);
+                        return proxyReqOn.call(proxyReq, eventName, listener);
                     }
-                    return proxyReqOn.call(this, 'response', (proxyRes) => {
+                    return proxyReqOn.call(proxyReq, 'response', (proxyRes: http.IncomingMessage) => {
                         if (onProxyResponse(proxy, proxyReq, proxyRes, req, res)) {
                             try {
                                 listener(proxyRes);
@@ -157,7 +165,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
 
     // Start proxying the request
     try {
-        (proxy as any).web(req, res, proxyOptions);
+        proxy.web(req, res, proxyOptions);
     } catch (err) {
         proxy.emit('error', err, req, res);
     }
@@ -202,7 +210,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
                     // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
                     proxyReq.removeAllListeners('error');
                     proxyReq.once('error', () => void 0);
-                    (proxyReq as any).abort();
+                    proxyReq.abort();
 
                     // Initiate a new proxy request.
                     proxyRequest(req, res, proxy);
@@ -221,11 +229,6 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     return true;
 }
 
-
-/**
- * @param req_url {string} The requested URL (scheme is optional).
- * @return {object} URL parsed using url.parse
- */
 function parseURL(req_url: string): URL {
     const match = req_url.match(/^(?:(https?:)?\/\/)?(([^\/?]+?)(?::(\d{0,5})(?=[\/?]|$))?)([\/?][\S\s]*|$)/i);
     //                              ^^^^^^^          ^^^^^^^^      ^^^^^^^                ^^^^^^^^^^^^
@@ -257,8 +260,8 @@ function parseURL(req_url: string): URL {
 
 // Request handler factory
 function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
-    const corsAnywhere: Partial<CorsAnywhereOptions> = {
-        getProxyForUrl: getProxyForUrl as CorsAnywhereOptions['getProxyForUrl'], // Function that specifies the proxy to use
+    let corsAnywhere: Partial<CorsAnywhereOptions> = {
+        getProxyForUrl: getProxyForUrl, // Function that specifies the proxy to use
         maxRedirects: 5, // Maximum number of redirects to be followed.
         originBlacklist: [], // Requests from these origins will be blocked.
         originWhitelist: [], // If non-empty, requests not from an origin in this list will be blocked.
@@ -271,11 +274,7 @@ function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
         helpFile: __dirname + '/help.txt',
     };
 
-    Object.keys(corsAnywhere).forEach(function (option) {
-        if (Object.prototype.hasOwnProperty.call(options, option)) {
-            corsAnywhere[option] = options[option];
-        }
-    });
+    corsAnywhere = {...corsAnywhere, ...options};
 
     // Convert corsAnywhere.requireHeader to an array of lowercase header names, or null.
     if (corsAnywhere.requireHeader) {
@@ -284,23 +283,17 @@ function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
         } else if (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0) {
             corsAnywhere.requireHeader = null;
         } else {
-            corsAnywhere.requireHeader = corsAnywhere.requireHeader.map(function (headerName) {
-                return headerName.toLowerCase();
-            });
+            corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase());
         }
     }
-    const hasRequiredHeaders = (headers) => {
-        return !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some(function (headerName) {
-            return Object.hasOwnProperty.call(headers, headerName);
-        });
-    };
+    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
 
-    return function (req: http.IncomingMessage, res: http.ServerResponse) {
+    return (req: http.IncomingMessage, res: http.ServerResponse) => {
         req.corsAnywhereRequestState = {
             getProxyForUrl: corsAnywhere.getProxyForUrl,
             maxRedirects: corsAnywhere.maxRedirects,
             corsMaxAge: corsAnywhere.corsMaxAge,
-        } as any;
+        };
 
         const cors_headers = withCORS({}, req);
         if (req.method === 'OPTIONS') {
@@ -367,8 +360,7 @@ function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
             return;
         }
 
-        if (corsAnywhere.redirectSameOrigin && origin && location.href[origin.length] === '/' &&
-        location.href.lastIndexOf(origin, 0) === 0) {
+        if (corsAnywhere.redirectSameOrigin && origin && location.href[origin.length] === '/' && location.href.lastIndexOf(origin, 0) === 0) {
             // Send a permanent redirect to offload the server. Badly coded clients should not waste our resources.
             cors_headers['vary'] = 'origin';
             cors_headers['cache-control'] = 'private';
@@ -378,16 +370,12 @@ function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
             return;
         }
 
-        const isRequestedOverHttps = /^\s*https/.test(req.headers['x-forwarded-proto'] as string);
+        const isRequestedOverHttps = /^\s*https/.test(req['x-forwarded-proto'] as string);
         const proxyBaseUrl = (isRequestedOverHttps ? 'https://' : 'http://') + req.headers.host;
 
-        corsAnywhere.removeHeaders.forEach(function (header) {
-            delete req.headers[header];
-        });
+        corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]);
 
-        Object.keys(corsAnywhere.setHeaders).forEach(function (header) {
-            req.headers[header] = corsAnywhere.setHeaders[header];
-        });
+        Object.keys(corsAnywhere.setHeaders).forEach((header) => req.headers[header] = corsAnywhere.setHeaders[header]);
 
         req.corsAnywhereRequestState.location = location;
         req.corsAnywhereRequestState.proxyBaseUrl = proxyBaseUrl;
@@ -402,14 +390,12 @@ export function createServer(options: CorsAnywhereOptions) {
     options = options || {} as CorsAnywhereOptions;
 
     // Default options:
-    const httpProxyOptions = {
+    let httpProxyOptions = {
         xfwd: true, // Append X-Forwarded-* headers
     };
     // Allow user to override defaults and add own options
     if (options.httpProxyOptions) {
-        Object.keys(options.httpProxyOptions).forEach(function (option) {
-            httpProxyOptions[option] = options.httpProxyOptions[option];
-        });
+        httpProxyOptions = {...httpProxyOptions, ...options.httpProxyOptions};
     }
 
     const proxy = httpProxy.createServer(httpProxyOptions);
@@ -429,7 +415,7 @@ export function createServer(options: CorsAnywhereOptions) {
             // the headers because it would generate an error.
             // Prior to Node 13.x, the stream would have ended.
             // As of Node 13.x, we must explicitly close it.
-            if (res.writableEnded === false) {
+            if (!res.writableEnded) {
                 res.end();
             }
             return;
@@ -438,9 +424,7 @@ export function createServer(options: CorsAnywhereOptions) {
         // When the error occurs after setting headers but before writing the response,
         // then any previously set headers must be removed.
         const headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res.getHeaders() || {});
-        headerNames.forEach(function (name) {
-            res.removeHeader(name);
-        });
+        headerNames.forEach((name) => res.removeHeader(name));
 
         res.writeHead(404, {'Access-Control-Allow-Origin': '*'});
         res.end('Not found because of proxy error: ' + err);
