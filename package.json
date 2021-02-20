@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/Gusted/cors-anywhere-iframe/issues/"
   },
-  "main": "./cors-anywhere.js",
+  "main": "./cors-anywhere-iframe.js",
   "types": "index.d.ts",
   "dependencies": {
     "http-proxy": "1.18.1",
