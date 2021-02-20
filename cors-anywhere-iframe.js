@@ -264,7 +264,7 @@ function getHandler(options, proxy) {
       res.end();
       return;
     }
-    const location = parseURL(req.url.slice(1));
+    const location = parseURL(req.url.slice(7));
     if (!location) {
       showUsage(corsAnywhere.helpFile, cors_headers, res);
       return;
