@@ -1,12 +1,12 @@
-import httpProxy from 'http-proxy';
+import type httpProxy from 'http-proxy';
 import {isIPv4, isIPv6} from 'net';
 import regexp_tld from './regexp-top-level-domain';
 import createRateLimiter from './rate-limit';
 import {getProxyForUrl} from 'proxy-from-env';
 import type {Url} from 'url';
 import {URL} from 'url';
-import http from 'http';
-import https from 'https';
+import type http from 'http';
+import type https from 'https';
 import fs from 'fs';
 import type stream from 'stream';
 import type {EventEmitter} from 'stream';
@@ -223,6 +223,8 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
 
     // Strip cookies
     delete proxyRes.headers['x-frame-options'];
+    // TO-DO: handle this.
+    delete proxyRes.headers['content-security-policy'];
 
     proxyRes.headers['x-final-url'] = requestState.location.href;
     withCORS(proxyRes.headers, req);
@@ -259,18 +261,18 @@ function parseURL(req_url: string): URL {
 }
 
 // Request handler factory
-function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
+export function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
     let corsAnywhere: Partial<CorsAnywhereOptions> = {
-        getProxyForUrl: getProxyForUrl, // Function that specifies the proxy to use
-        maxRedirects: 5, // Maximum number of redirects to be followed.
-        originBlacklist: [], // Requests from these origins will be blocked.
-        originWhitelist: [], // If non-empty, requests not from an origin in this list will be blocked.
-        checkRateLimit: null, // Function that may enforce a rate-limit by returning a non-empty string.
-        redirectSameOrigin: false, // Redirect the client to the requested URL for same-origin requests.
-        requireHeader: null, // Require a header to be set?
-        removeHeaders: [], // Strip these request headers.
-        setHeaders: {}, // Set these request headers.
-        corsMaxAge: '0', // If set, an Access-Control-Max-Age header with this value (in seconds) will be added.
+        getProxyForUrl: getProxyForUrl,
+        maxRedirects: 5,
+        originBlacklist: [],
+        originWhitelist: [],
+        checkRateLimit: null,
+        redirectSameOrigin: false,
+        requireHeader: null,
+        removeHeaders: [],
+        setHeaders: {},
+        corsMaxAge: '0',
         helpFile: __dirname + '/help.txt',
     };
 
@@ -382,55 +384,6 @@ function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
 
         proxyRequest(req, res, proxy);
     };
-}
-
-// Create server with default and given values
-// Creator still needs to call .listen()
-export function createServer(options: CorsAnywhereOptions) {
-    options = options || {} as CorsAnywhereOptions;
-
-    // Default options:
-    let httpProxyOptions = {
-        xfwd: true, // Append X-Forwarded-* headers
-    };
-    // Allow user to override defaults and add own options
-    if (options.httpProxyOptions) {
-        httpProxyOptions = {...httpProxyOptions, ...options.httpProxyOptions};
-    }
-
-    const proxy = httpProxy.createServer(httpProxyOptions);
-    const requestHandler = getHandler(options, proxy);
-    let server: https.Server | http.Server;
-    if (options.httpsOptions) {
-        server = https.createServer(options.httpsOptions, requestHandler);
-    } else {
-        server = http.createServer(requestHandler);
-    }
-
-    // When the server fails, just show a 404 instead of Internal server error
-    proxy.on('error', (err, _, res) => {
-        if (res.headersSent) {
-            // This could happen when a protocol error occurs when an error occurs
-            // after the headers have been received (and forwarded). Do not write
-            // the headers because it would generate an error.
-            // Prior to Node 13.x, the stream would have ended.
-            // As of Node 13.x, we must explicitly close it.
-            if (!res.writableEnded) {
-                res.end();
-            }
-            return;
-        }
-
-        // When the error occurs after setting headers but before writing the response,
-        // then any previously set headers must be removed.
-        const headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res.getHeaders() || {});
-        headerNames.forEach((name) => res.removeHeader(name));
-
-        res.writeHead(404, {'Access-Control-Allow-Origin': '*'});
-        res.end('Not found because of proxy error: ' + err);
-    });
-
-    return server;
 }
 
 export const createRateLimitChecker = createRateLimiter;

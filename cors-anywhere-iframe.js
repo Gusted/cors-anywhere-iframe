@@ -28,9 +28,8 @@ var __toModule = (module2) => {
 __markAsModule(exports);
 __export(exports, {
   createRateLimitChecker: () => createRateLimitChecker2,
-  createServer: () => createServer
+  getHandler: () => getHandler
 });
-var import_http_proxy = __toModule(require("http-proxy"));
 var import_net = __toModule(require("net"));
 
 // src/regexp-top-level-domain.ts
@@ -87,8 +86,6 @@ function createRateLimitChecker(options) {
 // src/cors-anywhere-iframe.ts
 var import_proxy_from_env = __toModule(require("proxy-from-env"));
 var import_url = __toModule(require("url"));
-var import_http = __toModule(require("http"));
-var import_https = __toModule(require("https"));
 var import_fs = __toModule(require("fs"));
 var help_text = {};
 function showUsage(help_file, headers, response) {
@@ -205,6 +202,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
     }
   }
   delete proxyRes.headers["x-frame-options"];
+  delete proxyRes.headers["content-security-policy"];
   proxyRes.headers["x-final-url"] = requestState.location.href;
   withCORS(proxyRes.headers, req);
   return true;
@@ -324,35 +322,5 @@ function getHandler(options, proxy) {
     req.corsAnywhereRequestState.proxyBaseUrl = proxyBaseUrl;
     proxyRequest(req, res, proxy);
   };
-}
-function createServer(options) {
-  options = options || {};
-  let httpProxyOptions = {
-    xfwd: true
-  };
-  if (options.httpProxyOptions) {
-    httpProxyOptions = {...httpProxyOptions, ...options.httpProxyOptions};
-  }
-  const proxy = import_http_proxy.default.createServer(httpProxyOptions);
-  const requestHandler = getHandler(options, proxy);
-  let server;
-  if (options.httpsOptions) {
-    server = import_https.default.createServer(options.httpsOptions, requestHandler);
-  } else {
-    server = import_http.default.createServer(requestHandler);
-  }
-  proxy.on("error", (err, _, res) => {
-    if (res.headersSent) {
-      if (!res.writableEnded) {
-        res.end();
-      }
-      return;
-    }
-    const headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res.getHeaders() || {});
-    headerNames.forEach((name) => res.removeHeader(name));
-    res.writeHead(404, {"Access-Control-Allow-Origin": "*"});
-    res.end("Not found because of proxy error: " + err);
-  });
-  return server;
 }
 var createRateLimitChecker2 = createRateLimitChecker;

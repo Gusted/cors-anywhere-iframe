@@ -1,8 +1,7 @@
-import https from 'https';
-import http from 'http';
+import {ServerResponse} from "http";
+import httpProxy from "http-proxy";
 
 interface CorsAnywhereOptions {
-
     /**
      * Function that specifies the proxy to use.
      * Default: npm package proxy-from-env
@@ -69,18 +68,6 @@ interface CorsAnywhereOptions {
      * Default: workingDir/help.txt
      */
     helpFile: string;
-
-    /**
-     * Specify options for HTTP Proxy server.
-     * Default: null
-     */
-    httpsOptions: Partial<http.ServerOptions>;
-
-    /**
-     * Specify options for HTTP Proxy server.
-     * Default: null
-     */
-    httpProxyOptions: Partial<https.ServerOptions>;
 }
 
 interface RateLimitOptions {
@@ -91,4 +78,4 @@ interface RateLimitOptions {
 
 export declare function createRateLimitChecker(options: RateLimitOptions): (host: string) => boolean;
 
-export declare function createServer(options: CorsAnywhereOptions): void;
+export declare function getHandler(options: CorsAnywhereOptions, proxy: httpProxy): (req: IncomingMessage, res: ServerResponse) => void;
