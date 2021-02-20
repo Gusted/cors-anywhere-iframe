@@ -305,7 +305,7 @@ export function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
             return;
         }
 
-        const location = parseURL(req.url.slice(7));
+        const location = parseURL(req.url);
 
         if (!location) {
             // Invalid API call. Show how to correctly use the API
