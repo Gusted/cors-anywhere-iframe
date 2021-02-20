@@ -76,6 +76,6 @@ interface RateLimitOptions {
     sites: string[];
 }
 
-export declare function createRateLimitChecker(options: RateLimitOptions): (host: string) => boolean;
+export declare function createRateLimitChecker(options: Partial<RateLimitOptions>): (host: string) => boolean;
 
-export declare function getHandler(options: CorsAnywhereOptions, proxy: httpProxy): (req: IncomingMessage, res: ServerResponse) => void;
+export declare function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpProxy): (req: IncomingMessage, res: ServerResponse) => void;
