@@ -24,12 +24,14 @@
     "@typescript-eslint/eslint-plugin": "4.15.1",
     "@typescript-eslint/parser": "4.15.1",
     "esbuild": "0.8.49",
-    "eslint": "7.20.0"
+    "eslint": "7.20.0",
+    "typescript": "4.1.5"
   },
   "scripts": {
     "run": "node server.js",
     "build": "node build.js",
-    "code-style": "eslint --cache --fix \"src/**/*.ts\" \".eslintrc.js\""
+    "code-style": "eslint --cache --fix \"src/**/*.ts\" \".eslintrc.js\"",
+    "release": "node build.js --release"
   },
   "engines": {
     "node": ">=0.10.0"

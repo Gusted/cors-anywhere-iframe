@@ -1,4 +1,4 @@
-import {ServerResponse} from "http";
+import {ServerResponse, IncomingMessage} from "http";
 import httpProxy from "http-proxy";
 
 interface CorsAnywhereOptions {
@@ -71,8 +71,22 @@ interface CorsAnywhereOptions {
 }
 
 interface RateLimitOptions {
+    /**
+     * Amount of request per Defined-Period.
+     * Default: 10
+     */
     maxRequestsPerPeriod: number;
+
+    /**
+     * Define how many minutes each period last.
+     * Default: 1
+     */
     periodInMinutes: number;
+
+    /**
+     * Sites to whitelist.
+     * Default: []
+     */
     sites: string[];
 }
 

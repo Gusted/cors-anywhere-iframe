@@ -12,7 +12,6 @@ import type stream from 'stream';
 import type {EventEmitter} from 'stream';
 import type {OutgoingMessage} from 'http';
 
-
 declare module 'http' {
     interface corsAnywhereRequestStateOptions {
         location: URL;
@@ -75,7 +74,6 @@ function showUsage(help_file: string, headers: http.IncomingHttpHeaders, respons
 
 /**
  * Check whether the specified hostname is valid.
- *
  */
 function isValidHostName(hostname: string): boolean {
     return !!(
@@ -221,11 +219,12 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
         }
     }
 
-    // Strip cookies
+    // Remove IFrame deny protection.
     delete proxyRes.headers['x-frame-options'];
-    // TO-DO: handle this.
-    delete proxyRes.headers['content-security-policy'];
-
+    // Remove IFrame protection.
+    if (proxyRes.headers['content-security-policy']) {
+        proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string).replace(/frame-ancestor.+?(?=;).\s?/g, '');
+    }
     proxyRes.headers['x-final-url'] = requestState.location.href;
     withCORS(proxyRes.headers, req);
     return true;
@@ -261,7 +260,8 @@ function parseURL(req_url: string): URL {
 }
 
 // Request handler factory
-export function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
+export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpProxy) {
+    // Default options.
     let corsAnywhere: Partial<CorsAnywhereOptions> = {
         getProxyForUrl: getProxyForUrl,
         maxRedirects: 5,
@@ -280,9 +280,7 @@ export function getHandler(options: CorsAnywhereOptions, proxy: httpProxy) {
 
     // Convert corsAnywhere.requireHeader to an array of lowercase header names, or null.
     if (corsAnywhere.requireHeader) {
-        if (typeof corsAnywhere.requireHeader === 'string') {
-            corsAnywhere.requireHeader = [(corsAnywhere.requireHeader as string).toLowerCase()];
-        } else if (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0) {
+        if (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0) {
             corsAnywhere.requireHeader = null;
         } else {
             corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase());

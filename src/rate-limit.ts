@@ -6,38 +6,23 @@ interface RateLimitOptions {
 
 export default function createRateLimitChecker(options: RateLimitOptions) {
     const {maxRequestsPerPeriod, periodInMinutes, sites} = options;
-    if (!options) {
-        // No rate limit by default.
-        return () => {
-            void 0;
-        };
-    }
-    let hostPatternRegExp: RegExp = null;
+    options = {...{
+        maxRequestsPerPeriod: 10,
+        periodInMinutes: 1,
+        sites: []
+    }, ...options};
+    const hostPatternRegExps: RegExp[] = [];
     if (sites) {
-        const hostPatternParts: string[] = [];
         sites.forEach((host) => {
-            const startsWithSlash = host.charAt(0) === '/';
-            const endsWithSlash = host.slice(-1) === '/';
-            if (startsWithSlash || endsWithSlash) {
-                if (host.length === 1 || !startsWithSlash || !endsWithSlash) {
-                    throw new Error('Invalid RateLimitOptions.');
-                }
-                host = host.slice(1, -1);
-                // Throws if the pattern is invalid.
-                new RegExp(host);
-            } else {
-                // Just escape RegExp characters even though they cannot appear in a host name.
-                // The only actual important escape is the dot.
-                host = host.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
-            }
-            hostPatternParts.push(host);
+            host = host.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&').replace(/-/g, '\\x2d').replace(/\\\*/g, '[\\s\\S]*');
+            const regexp = new RegExp(`^${host}(?![A-Za-z0-9])`, 'i');
+            hostPatternRegExps.push(regexp);
         });
-        hostPatternRegExp = new RegExp('^(?:' + hostPatternParts.join('|') + ')$', 'i');
     }
 
-    let accessedHosts: {[host: string]: number} = {};
+    const accessedHosts: Map<string, number> = new Map();
     setInterval(() => {
-        accessedHosts = {};
+        accessedHosts.clear();
     }, options.periodInMinutes * 60000);
 
     const rateLimitMessage = `The number of requests is limited to ${maxRequestsPerPeriod}
@@ -46,14 +31,17 @@ export default function createRateLimitChecker(options: RateLimitOptions) {
 
     return function checkRateLimit(origin: string) {
         const host = origin.replace(/^[\w\-]+:\/\//i, '');
-        if (hostPatternRegExp && hostPatternRegExp.test(host)) {
+        if (hostPatternRegExps && hostPatternRegExps.some((hostPattern) => hostPattern.test(host))) {
             return;
         }
-        let count = accessedHosts[host] || 0;
-        ++count;
-        if (count > maxRequestsPerPeriod) {
-            return rateLimitMessage;
+        if (!accessedHosts.has(host)) {
+            accessedHosts.set(host, 1);
+        } else {
+            const count = accessedHosts.get(host) + 1;
+            if (count > maxRequestsPerPeriod) {
+                return rateLimitMessage;
+            }
+            accessedHosts.set(host, count);
         }
-        accessedHosts[host] = count;
     };
 }
