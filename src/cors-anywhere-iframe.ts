@@ -8,9 +8,11 @@ import {URL} from 'url';
 import type http from 'http';
 import type https from 'https';
 import fs from 'fs';
+import zlib from 'zlib';
 import type stream from 'stream';
 import type {EventEmitter} from 'stream';
 import type {OutgoingMessage} from 'http';
+import {TextDecoder} from 'util';
 
 declare module 'http' {
     interface corsAnywhereRequestStateOptions {
@@ -160,6 +162,33 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
     }
 }
 
+type ContentEncoding = 'gzip' | 'deflate' | 'br';
+
+const textDecoder = new TextDecoder();
+
+function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: string): Buffer {
+    let rawBody: string;
+    // Decompress when needed.
+    if (contentEncoding === 'gzip') {
+        rawBody = textDecoder.decode(zlib.gunzipSync(body));
+    } else if (contentEncoding === 'deflate') {
+        rawBody = textDecoder.decode(zlib.inflateSync(body));
+    } else if (contentEncoding === 'br') {
+        rawBody = textDecoder.decode(zlib.brotliDecompressSync(body));
+    }
+    rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
+    // Re-Compress when needed.
+    if (contentEncoding === 'gzip') {
+        body = zlib.gzipSync(rawBody);
+    } else if (contentEncoding === 'deflate') {
+        body = zlib.deflateSync(rawBody);
+    } else if (contentEncoding === 'br') {
+        body = zlib.brotliCompressSync(rawBody);
+    } else {
+        body = Buffer.from(rawBody);
+    }
+    return body;
+}
 
 function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRes: http.IncomingMessage, req: http.IncomingMessage, res: http.ServerResponse) {
     const requestState = req.corsAnywhereRequestState;
@@ -214,11 +243,66 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     delete proxyRes.headers['x-frame-options'];
     // Remove IFrame protection.
     if (proxyRes.headers['content-security-policy']) {
-        proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string).replace(/frame-ancestor.+?(?=;).\s?/g, '');
+        proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string)
+            .replace(/frame-ancestor.+?(?=;).\s?/g, '')
+            .replace(/base-uri.+?(?=;).\s?/g, `base-uri: ${requestState.location.href}`);
     }
+
     proxyRes.headers['x-final-url'] = requestState.location.href;
     withCORS(proxyRes.headers, req);
+
+    const buffers: Buffer[] = [];
+    let reason: string;
+    let headersSet = false;
+
+    const original = patch(res, {
+        writeHead(statusCode: number, reasonPhrase: string, headers: {[header: string]: any}) {
+            if (typeof reasonPhrase == 'object') {
+                headers = reasonPhrase;
+                reasonPhrase = undefined;
+            }
+
+            this.statusCode = statusCode;
+            reason = reasonPhrase;
+
+            for (const name in headers) {
+                this.setHeader(name, headers[name]);
+            }
+            headersSet = true;
+
+            this.writeHead = original.writeHead;
+        },
+        write(chunk: any) {
+            !headersSet && res.writeHead(res.statusCode);
+            chunk && buffers.push(Buffer.from(chunk));
+        },
+
+        end(chunk: any) {
+            !headersSet && res.writeHead(res.statusCode);
+            chunk && buffers.push(Buffer.from(chunk));
+            const body = Buffer.concat(buffers);
+            const tampered = modifyBody(body, res.getHeader('content-encoding') as ContentEncoding, requestState.location.href);
+            Promise.resolve(tampered).then((body: Buffer) => {
+                this.write = (original as any).write;
+                this.end = (original as any).end;
+                this.setHeader('Content-Length', Buffer.byteLength(body));
+                this.writeHead(this.statusCode, reason);
+                this.end(body);
+            });
+        }
+    } as typeof res);
+
     return true;
+}
+
+
+function patch<T>(obj: T, properties: T): Partial<T> {
+    const old: Partial<T> = {};
+    for (const name in properties) {
+        old[name] = obj[name];
+        obj[name] = properties[name];
+    }
+    return old;
 }
 
 function parseURL(req_url: string): URL {

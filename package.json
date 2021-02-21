@@ -30,7 +30,7 @@
   "scripts": {
     "build": "node tasks/build.js",
     "code-style": "eslint --cache --fix \"src/**/*.ts\" \"tasks/**/*.js\" \".eslintrc.js\"",
-    "release": "node build.js --release"
+    "release": "node tasks/build.js --release"
   },
   "engines": {
     "node": ">=0.10.0"
