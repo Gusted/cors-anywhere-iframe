@@ -64,6 +64,12 @@ module.exports = {
     },
     overrides: [
         {
+            files: ['tasks/**/*.js'],
+            rules: {
+                '@typescript-eslint/no-var-requires': 'off'
+            }
+        },
+        {
             files: ['src/**/*.ts'],
             parserOptions: {
                 ecmaVersion: 2019,

@@ -24,15 +24,6 @@ declare module 'http' {
     interface IncomingMessage {
         corsAnywhereRequestState: Partial<corsAnywhereRequestStateOptions>;
     }
-    interface OutgoingMessage {
-        abort: () => void;
-    }
-}
-
-declare module 'events' {
-    interface EventEmitter {
-        web: (request: http.IncomingMessage, response: http.ServerResponse, options: httpProxy.ServerOptions) => void;
-    }
 }
 
 interface CorsAnywhereOptions {
@@ -163,7 +154,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
 
     // Start proxying the request
     try {
-        proxy.web(req, res, proxyOptions);
+        (proxy as any).web(req, res, proxyOptions);
     } catch (err) {
         proxy.emit('error', err, req, res);
     }
@@ -208,7 +199,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
                     // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
                     proxyReq.removeAllListeners('error');
                     proxyReq.once('error', () => void 0);
-                    proxyReq.abort();
+                    (proxyReq as any).abort();
 
                     // Initiate a new proxy request.
                     proxyRequest(req, res, proxy);
@@ -308,15 +299,6 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         if (!location) {
             // Invalid API call. Show how to correctly use the API
             showUsage(corsAnywhere.helpFile, cors_headers, res);
-            return;
-        }
-
-        if (location.host === 'iscorsneeded') {
-            // Is CORS needed? This path is provided so that API consumers can test whether it's necessary
-            // to use CORS. The server's reply is always No, because if they can read it, then CORS headers
-            // are not necessary.
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.end('no');
             return;
         }
 

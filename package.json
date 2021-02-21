@@ -28,9 +28,8 @@
     "typescript": "4.1.5"
   },
   "scripts": {
-    "run": "node server.js",
-    "build": "node build.js",
-    "code-style": "eslint --cache --fix \"src/**/*.ts\" \".eslintrc.js\"",
+    "build": "node tasks/build.js",
+    "code-style": "eslint --cache --fix \"src/**/*.ts\" \"tasks/**/*.js\" \".eslintrc.js\"",
     "release": "node build.js --release"
   },
   "engines": {
