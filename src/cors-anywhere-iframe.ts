@@ -175,8 +175,14 @@ function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: stri
         rawBody = textDecoder.decode(zlib.inflateSync(body));
     } else if (contentEncoding === 'br') {
         rawBody = textDecoder.decode(zlib.brotliDecompressSync(body));
+    } else {
+        rawBody = textDecoder.decode(body);
     }
-    rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
+    try {
+        rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
+    } catch (err) {
+        console.log(err);
+    }
     // Re-Compress when needed.
     if (contentEncoding === 'gzip') {
         body = zlib.gzipSync(rawBody);
@@ -245,7 +251,9 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     if (proxyRes.headers['content-security-policy']) {
         proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string)
             .replace(/frame-ancestor.+?(?=;).\s?/g, '')
-            .replace(/base-uri.+?(?=;).\s?/g, `base-uri: ${requestState.location.href}`);
+            .replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.href}`)
+            .replace(/'self'/g, requestState.location.href)
+            .replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`);
     }
 
     proxyRes.headers['x-final-url'] = requestState.location.href;
@@ -262,15 +270,15 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
                 reasonPhrase = undefined;
             }
 
-            this.statusCode = statusCode;
+            res.statusCode = statusCode;
             reason = reasonPhrase;
 
             for (const name in headers) {
-                this.setHeader(name, headers[name]);
+                res.setHeader(name, headers[name]);
             }
             headersSet = true;
 
-            this.writeHead = original.writeHead;
+            res.writeHead = original.writeHead;
         },
         write(chunk: any) {
             !headersSet && res.writeHead(res.statusCode);
@@ -283,11 +291,11 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
             const body = Buffer.concat(buffers);
             const tampered = modifyBody(body, res.getHeader('content-encoding') as ContentEncoding, requestState.location.href);
             Promise.resolve(tampered).then((body: Buffer) => {
-                this.write = (original as any).write;
-                this.end = (original as any).end;
-                this.setHeader('Content-Length', Buffer.byteLength(body));
-                this.writeHead(this.statusCode, reason);
-                this.end(body);
+                res.write = (original as any).write;
+                res.end = (original as any).end;
+                res.setHeader('Content-Length', Buffer.byteLength(body));
+                res.writeHead(res.statusCode, reason);
+                res.end(body);
             });
         }
     } as typeof res);

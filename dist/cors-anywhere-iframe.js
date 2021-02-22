@@ -103,7 +103,13 @@ function proxyRequest(req, res, proxy) {
 var textDecoder = new import_util.TextDecoder();
 function modifyBody(body, contentEncoding, origin) {
   let rawBody;
-  return contentEncoding === "gzip" ? rawBody = textDecoder.decode(import_zlib.default.gunzipSync(body)) : contentEncoding === "deflate" ? rawBody = textDecoder.decode(import_zlib.default.inflateSync(body)) : contentEncoding === "br" && (rawBody = textDecoder.decode(import_zlib.default.brotliDecompressSync(body))), rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`), contentEncoding === "gzip" ? body = import_zlib.default.gzipSync(rawBody) : contentEncoding === "deflate" ? body = import_zlib.default.deflateSync(rawBody) : contentEncoding === "br" ? body = import_zlib.default.brotliCompressSync(rawBody) : body = Buffer.from(rawBody), body;
+  contentEncoding === "gzip" ? rawBody = textDecoder.decode(import_zlib.default.gunzipSync(body)) : contentEncoding === "deflate" ? rawBody = textDecoder.decode(import_zlib.default.inflateSync(body)) : contentEncoding === "br" ? rawBody = textDecoder.decode(import_zlib.default.brotliDecompressSync(body)) : rawBody = textDecoder.decode(body);
+  try {
+    rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
+  } catch (err) {
+    console.log(err);
+  }
+  return contentEncoding === "gzip" ? body = import_zlib.default.gzipSync(rawBody) : contentEncoding === "deflate" ? body = import_zlib.default.deflateSync(rawBody) : contentEncoding === "br" ? body = import_zlib.default.brotliCompressSync(rawBody) : body = Buffer.from(rawBody), body;
 }
 function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
   let requestState = req.corsAnywhereRequestState, statusCode = proxyRes.statusCode;
@@ -116,13 +122,13 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
-  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;).\s?/g, `base-uri: ${requestState.location.href}`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
+  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.href}`).replace(/'self'/g, requestState.location.href).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
   let buffers = [], reason, headersSet = !1, original = patch(res, {
     writeHead(statusCode2, reasonPhrase, headers) {
-      typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), this.statusCode = statusCode2, reason = reasonPhrase;
+      typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
       for (let name in headers)
-        this.setHeader(name, headers[name]);
-      headersSet = !0, this.writeHead = original.writeHead;
+        res.setHeader(name, headers[name]);
+      headersSet = !0, res.writeHead = original.writeHead;
     },
     write(chunk) {
       !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
@@ -131,7 +137,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
       let body = Buffer.concat(buffers), tampered = modifyBody(body, res.getHeader("content-encoding"), requestState.location.href);
       Promise.resolve(tampered).then((body2) => {
-        this.write = original.write, this.end = original.end, this.setHeader("Content-Length", Buffer.byteLength(body2)), this.writeHead(this.statusCode, reason), this.end(body2);
+        res.write = original.write, res.end = original.end, res.setHeader("Content-Length", Buffer.byteLength(body2)), res.writeHead(res.statusCode, reason), res.end(body2);
       });
     }
   });
