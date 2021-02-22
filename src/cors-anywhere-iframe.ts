@@ -248,8 +248,8 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     if (proxyRes.headers['content-security-policy']) {
         proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string)
             .replace(/frame-ancestor.+?(?=;).\s?/g, '')
-            .replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.href}`)
-            .replace(/'self'/g, requestState.location.href)
+            .replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.origin}`)
+            .replace(/'self'/g, requestState.location.origin)
             .replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`);
     }
 
@@ -286,7 +286,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
             !headersSet && res.writeHead(res.statusCode);
             chunk && buffers.push(Buffer.from(chunk));
             const body = Buffer.concat(buffers);
-            const tampered = modifyBody(body, res.getHeader('content-encoding') as ContentEncoding, requestState.location.href);
+            const tampered = modifyBody(body, res.getHeader('content-encoding') as ContentEncoding, requestState.location.origin);
             Promise.resolve(tampered).then((body: Buffer) => {
                 res.write = (original as any).write;
                 res.end = (original as any).end;

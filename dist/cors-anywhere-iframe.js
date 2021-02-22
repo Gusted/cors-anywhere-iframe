@@ -116,7 +116,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
-  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.href}`).replace(/'self'/g, requestState.location.href).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
+  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.origin}`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
   let buffers = [], reason, headersSet = !1, original = patch(res, {
     writeHead(statusCode2, reasonPhrase, headers) {
       typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
@@ -129,7 +129,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
     },
     end(chunk) {
       !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
-      let body = Buffer.concat(buffers), tampered = modifyBody(body, res.getHeader("content-encoding"), requestState.location.href);
+      let body = Buffer.concat(buffers), tampered = modifyBody(body, res.getHeader("content-encoding"), requestState.location.origin);
       Promise.resolve(tampered).then((body2) => {
         res.write = original.write, res.end = original.end, res.setHeader("Content-Length", Buffer.byteLength(body2)), res.writeHead(res.statusCode, reason), res.end(body2);
       });
