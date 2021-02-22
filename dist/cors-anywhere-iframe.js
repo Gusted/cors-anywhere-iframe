@@ -116,7 +116,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
-  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.origin}`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
+  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;)/g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
   let buffers = [], reason, headersSet = !1, original = patch(res, {
     writeHead(statusCode2, reasonPhrase, headers) {
       typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;

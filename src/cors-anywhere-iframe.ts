@@ -248,7 +248,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     if (proxyRes.headers['content-security-policy']) {
         proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string)
             .replace(/frame-ancestor.+?(?=;).\s?/g, '')
-            .replace(/base-uri.+?(?=;).\s?/g, `base-uri ${requestState.location.origin}`)
+            .replace(/base-uri.+?(?=;)/g, `base-uri ${requestState.location.origin};`)
             .replace(/'self'/g, requestState.location.origin)
             .replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`);
     }
