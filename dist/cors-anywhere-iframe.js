@@ -70,9 +70,7 @@ function withCORS(headers, request) {
   return request.method === "OPTIONS" && corsMaxAge && (headers["access-control-max-age"] = corsMaxAge), request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers["access-control-expose-headers"] = Object.keys(headers).join(","), headers;
 }
 function proxyRequest(req, res, proxy) {
-  let location = req.corsAnywhereRequestState.location;
-  req.url = location.pathname;
-  let proxyOptions = {
+  let location = req.corsAnywhereRequestState.location, proxyOptions = {
     changeOrigin: !1,
     prependPath: !1,
     target: location,
