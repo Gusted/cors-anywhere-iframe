@@ -104,7 +104,6 @@ function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessa
  */
 function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy: EventEmitter) {
     const location = req.corsAnywhereRequestState.location;
-    req.url = location.pathname;
 
     const proxyOptions: httpProxy.ServerOptions = {
         changeOrigin: false,
