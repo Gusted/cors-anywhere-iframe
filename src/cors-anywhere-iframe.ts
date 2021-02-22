@@ -381,7 +381,7 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
             res.end();
             return;
         }
-
+        req.url = decodeURIComponent(req.url);
         const location = parseURL(req.url);
 
         if (!location) {
