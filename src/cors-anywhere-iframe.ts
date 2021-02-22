@@ -166,6 +166,7 @@ type ContentEncoding = 'gzip' | 'deflate' | 'br';
 
 const textDecoder = new TextDecoder();
 
+
 function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: string): Buffer {
     let rawBody: string;
     // Decompress when needed.
@@ -178,11 +179,7 @@ function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: stri
     } else {
         rawBody = textDecoder.decode(body);
     }
-    try {
-        rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
-    } catch (err) {
-        console.log(err);
-    }
+    rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
     // Re-Compress when needed.
     if (contentEncoding === 'gzip') {
         body = zlib.gzipSync(rawBody);

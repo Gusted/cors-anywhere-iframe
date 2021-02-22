@@ -103,13 +103,7 @@ function proxyRequest(req, res, proxy) {
 var textDecoder = new import_util.TextDecoder();
 function modifyBody(body, contentEncoding, origin) {
   let rawBody;
-  contentEncoding === "gzip" ? rawBody = textDecoder.decode(import_zlib.default.gunzipSync(body)) : contentEncoding === "deflate" ? rawBody = textDecoder.decode(import_zlib.default.inflateSync(body)) : contentEncoding === "br" ? rawBody = textDecoder.decode(import_zlib.default.brotliDecompressSync(body)) : rawBody = textDecoder.decode(body);
-  try {
-    rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
-  } catch (err) {
-    console.log(err);
-  }
-  return contentEncoding === "gzip" ? body = import_zlib.default.gzipSync(rawBody) : contentEncoding === "deflate" ? body = import_zlib.default.deflateSync(rawBody) : contentEncoding === "br" ? body = import_zlib.default.brotliCompressSync(rawBody) : body = Buffer.from(rawBody), body;
+  return contentEncoding === "gzip" ? rawBody = textDecoder.decode(import_zlib.default.gunzipSync(body)) : contentEncoding === "deflate" ? rawBody = textDecoder.decode(import_zlib.default.inflateSync(body)) : contentEncoding === "br" ? rawBody = textDecoder.decode(import_zlib.default.brotliDecompressSync(body)) : rawBody = textDecoder.decode(body), rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`), contentEncoding === "gzip" ? body = import_zlib.default.gzipSync(rawBody) : contentEncoding === "deflate" ? body = import_zlib.default.deflateSync(rawBody) : contentEncoding === "br" ? body = import_zlib.default.brotliCompressSync(rawBody) : body = Buffer.from(rawBody), body;
 }
 function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
   let requestState = req.corsAnywhereRequestState, statusCode = proxyRes.statusCode;
