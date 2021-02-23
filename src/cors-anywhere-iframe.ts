@@ -294,7 +294,11 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
             Promise.resolve(tampered).then((body: Buffer) => {
                 res.write = (original as any).write;
                 res.end = (original as any).end;
-                res.setHeader('Content-Length', Buffer.byteLength(body));
+                if (res.getHeader('transfer-encoding') !== 'chunked') {
+                    res.setHeader('Content-Length', Buffer.byteLength(body));
+                } else {
+                    res.removeHeader('Content-Length');
+                }
                 res.writeHead(res.statusCode, reason);
                 res.end(body);
             });

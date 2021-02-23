@@ -129,7 +129,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
       let body = Buffer.concat(buffers), tampered = modifyBody(body, res.getHeader("content-encoding"), requestState.location.origin);
       Promise.resolve(tampered).then((body2) => {
-        res.write = original.write, res.end = original.end, res.setHeader("Content-Length", Buffer.byteLength(body2)), res.writeHead(res.statusCode, reason), res.end(body2);
+        res.write = original.write, res.end = original.end, res.getHeader("transfer-encoding") !== "chunked" ? res.setHeader("Content-Length", Buffer.byteLength(body2)) : res.removeHeader("Content-Length"), res.writeHead(res.statusCode, reason), res.end(body2);
       });
     }
   });
