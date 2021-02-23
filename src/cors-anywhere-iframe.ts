@@ -202,10 +202,11 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     }
     // Handle redirects
     if (statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308) {
-        const locationHeader = proxyRes.headers.location;
+        let locationHeader = proxyRes.headers.location;
         let parsedLocation: URL;
         if (locationHeader) {
-            parsedLocation = parseURL(new URL(locationHeader, requestState.location.href).href);
+            locationHeader = new URL(locationHeader, requestState.location.href).href;
+            parsedLocation = parseURL(locationHeader);
         }
         if (parsedLocation) {
             if (statusCode === 301 || statusCode === 302 || statusCode === 303) {
@@ -219,8 +220,10 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
 
                     req.method = 'GET';
                     req.headers['content-length'] = '0';
+
                     delete req.headers['content-type'];
                     requestState.location = parsedLocation;
+                    req.url = parsedLocation.href;
 
                     // Remove all listeners (=reset events to initial state)
                     req.removeAllListeners();
@@ -243,11 +246,13 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
 
     // Remove IFrame deny protection.
     delete proxyRes.headers['x-frame-options'];
+    delete proxyRes.headers['x-xss-protection'];
+
     // Remove IFrame protection.
     if (proxyRes.headers['content-security-policy']) {
         proxyRes.headers['content-security-policy'] = (proxyRes.headers['content-security-policy'] as string)
-            .replace(/frame-ancestor.+?(?=;).\s?/g, '')
-            .replace(/base-uri.+?(?=;)/g, `base-uri ${requestState.location.origin};`)
+            .replace(/frame-ancestors?.+?(?=;|$).?/g, '')
+            .replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`)
             .replace(/'self'/g, requestState.location.origin)
             .replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`);
     }
@@ -381,7 +386,7 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
             res.end();
             return;
         }
-        req.url = decodeURIComponent(req.url);
+        req.url = Buffer.from(req.url, 'base64').toString('ascii');
         const location = parseURL(req.url);
 
         if (!location) {
@@ -445,7 +450,7 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
 
         corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]);
 
-        Object.keys(corsAnywhere.setHeaders).forEach((header) => req.headers[header] = corsAnywhere.setHeaders[header]);
+        req.headers = {...req.headers, ...corsAnywhere.setHeaders};
 
         req.corsAnywhereRequestState.location = location;
         req.corsAnywhereRequestState.proxyBaseUrl = proxyBaseUrl;

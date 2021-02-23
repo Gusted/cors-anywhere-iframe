@@ -107,14 +107,14 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
   let requestState = req.corsAnywhereRequestState, statusCode = proxyRes.statusCode;
   if (requestState.redirectCount || res.setHeader("x-request-url", requestState.location.href), statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308) {
     let locationHeader = proxyRes.headers.location, parsedLocation;
-    if (locationHeader && (parsedLocation = parseURL(new import_url.URL(locationHeader, requestState.location.href).href)), parsedLocation) {
+    if (locationHeader && (locationHeader = new import_url.URL(locationHeader, requestState.location.href).href, parsedLocation = parseURL(locationHeader)), parsedLocation) {
       if ((statusCode === 301 || statusCode === 302 || statusCode === 303) && (requestState.redirectCount = requestState.redirectCount + 1 || 1, requestState.redirectCount <= requestState.maxRedirects))
-        return res.setHeader("X-CORS-Redirect-" + requestState.redirectCount, statusCode + " " + locationHeader), req.method = "GET", req.headers["content-length"] = "0", delete req.headers["content-type"], requestState.location = parsedLocation, req.removeAllListeners(), proxyReq.removeAllListeners("error"), proxyReq.once("error", () => {
+        return res.setHeader("X-CORS-Redirect-" + requestState.redirectCount, statusCode + " " + locationHeader), req.method = "GET", req.headers["content-length"] = "0", delete req.headers["content-type"], requestState.location = parsedLocation, req.url = parsedLocation.href, req.removeAllListeners(), proxyReq.removeAllListeners("error"), proxyReq.once("error", () => {
         }), proxyReq.abort(), proxyRequest(req, res, proxy), !1;
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
-  delete proxyRes.headers["x-frame-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestor.+?(?=;).\s?/g, "").replace(/base-uri.+?(?=;)/g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
+  delete proxyRes.headers["x-frame-options"], delete proxyRes.headers["x-xss-protection"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestors?.+?(?=;|$).?/g, "").replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
   let buffers = [], reason, headersSet = !1, original = patch(res, {
     writeHead(statusCode2, reasonPhrase, headers) {
       typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
@@ -180,7 +180,7 @@ function getHandler(options, proxy) {
       res.writeHead(200, cors_headers), res.end();
       return;
     }
-    req.url = decodeURIComponent(req.url);
+    req.url = Buffer.from(req.url, "base64").toString("ascii");
     let location = parseURL(req.url);
     if (!location) {
       showUsage(corsAnywhere.helpFile, cors_headers, res);
@@ -218,7 +218,7 @@ function getHandler(options, proxy) {
       return;
     }
     let proxyBaseUrl = (/^\s*https/.test(req["x-forwarded-proto"]) ? "https://" : "http://") + req.headers.host;
-    corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]), Object.keys(corsAnywhere.setHeaders).forEach((header) => req.headers[header] = corsAnywhere.setHeaders[header]), req.corsAnywhereRequestState.location = location, req.corsAnywhereRequestState.proxyBaseUrl = proxyBaseUrl, proxyRequest(req, res, proxy);
+    corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]), req.headers = {...req.headers, ...corsAnywhere.setHeaders}, req.corsAnywhereRequestState.location = location, req.corsAnywhereRequestState.proxyBaseUrl = proxyBaseUrl, proxyRequest(req, res, proxy);
   };
 }
 var createRateLimitChecker2 = createRateLimitChecker;
