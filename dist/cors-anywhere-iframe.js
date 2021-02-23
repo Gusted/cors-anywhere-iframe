@@ -180,7 +180,7 @@ function getHandler(options, proxy) {
       res.writeHead(200, cors_headers), res.end();
       return;
     }
-    req.url = Buffer.from(req.url, "base64").toString("ascii");
+    req.url = decodeURIComponent(req.url);
     let location = parseURL(req.url);
     if (!location) {
       showUsage(corsAnywhere.helpFile, cors_headers, res);
