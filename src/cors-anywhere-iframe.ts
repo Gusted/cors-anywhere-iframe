@@ -1,18 +1,18 @@
-import type httpProxy from 'http-proxy';
 import {isIPv4, isIPv6} from 'net';
 import regexp_tld from './regexp-top-level-domain';
 import createRateLimiter from './rate-limit';
 import {getProxyForUrl} from 'proxy-from-env';
-import type {Url} from 'url';
 import {URL} from 'url';
-import type http from 'http';
-import type https from 'https';
 import fs from 'fs';
 import zlib from 'zlib';
+import {TextDecoder} from 'util';
+import type httpProxy from 'http-proxy';
+import type {Url} from 'url';
+import type http from 'http';
+import type https from 'https';
 import type stream from 'stream';
 import type {EventEmitter} from 'stream';
 import type {OutgoingMessage} from 'http';
-import {TextDecoder} from 'util';
 
 declare module 'http' {
     interface corsAnywhereRequestStateOptions {

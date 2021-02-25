@@ -13,6 +13,10 @@
   },
   "main": "dist/cors-anywhere-iframe.js",
   "types": "index.d.ts",
+  "files": [
+		"dist/cors-anywhere-iframe.js",
+		"index.d.ts"
+	],
   "dependencies": {
     "http-proxy": "1.18.1",
     "proxy-from-env": "1.1.0"
