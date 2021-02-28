@@ -99,9 +99,9 @@ function proxyRequest(req, res, proxy) {
   }
 }
 var textDecoder = new import_util.TextDecoder();
-function modifyBody(body, contentEncoding, origin) {
+async function modifyBody(body, contentEncoding, origin, callback) {
   let rawBody;
-  return contentEncoding === "gzip" ? rawBody = textDecoder.decode(import_zlib.default.gunzipSync(body)) : contentEncoding === "deflate" ? rawBody = textDecoder.decode(import_zlib.default.inflateSync(body)) : contentEncoding === "br" ? rawBody = textDecoder.decode(import_zlib.default.brotliDecompressSync(body)) : rawBody = textDecoder.decode(body), rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`), contentEncoding === "gzip" ? body = import_zlib.default.gzipSync(rawBody) : contentEncoding === "deflate" ? body = import_zlib.default.deflateSync(rawBody) : contentEncoding === "br" ? body = import_zlib.default.brotliCompressSync(rawBody) : body = Buffer.from(rawBody), body;
+  return contentEncoding === "gzip" ? rawBody = textDecoder.decode(import_zlib.default.gunzipSync(body)) : contentEncoding === "deflate" ? rawBody = textDecoder.decode(import_zlib.default.inflateSync(body)) : contentEncoding === "br" ? rawBody = textDecoder.decode(import_zlib.default.brotliDecompressSync(body)) : rawBody = textDecoder.decode(body), rawBody = await Promise.resolve(callback(rawBody, origin)), contentEncoding === "gzip" ? body = import_zlib.default.gzipSync(rawBody) : contentEncoding === "deflate" ? body = import_zlib.default.deflateSync(rawBody) : contentEncoding === "br" ? body = import_zlib.default.brotliCompressSync(rawBody) : body = Buffer.from(rawBody), body;
 }
 function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
   let requestState = req.corsAnywhereRequestState, statusCode = proxyRes.statusCode;
@@ -114,7 +114,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
-  delete proxyRes.headers["x-frame-options"], delete proxyRes.headers["x-xss-protection"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestors?.+?(?=;|$).?/g, "").replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
+  delete proxyRes.headers["x-frame-options"], delete proxyRes.headers["x-xss-protection"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestors?.+?(?=;|$).?/g, "").replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl} inline;`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
   let buffers = [], reason, headersSet = !1, original = patch(res, {
     writeHead(statusCode2, reasonPhrase, headers) {
       typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
@@ -127,9 +127,9 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
     },
     end(chunk) {
       !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
-      let body = Buffer.concat(buffers), tampered = modifyBody(body, res.getHeader("content-encoding"), requestState.location.origin);
-      Promise.resolve(tampered).then((body2) => {
-        res.write = original.write, res.end = original.end, res.getHeader("transfer-encoding") !== "chunked" ? res.setHeader("Content-Length", Buffer.byteLength(body2)) : res.removeHeader("Content-Length"), res.writeHead(res.statusCode, reason), res.end(body2);
+      let tampered = modifyBody(Buffer.concat(buffers), res.getHeader("content-encoding"), requestState.location.origin, requestState.onReceiveResponseBody);
+      Promise.resolve(tampered).then((body) => {
+        res.write = original.write, res.end = original.end, res.getHeader("transfer-encoding") !== "chunked" ? res.setHeader("Content-Length", Buffer.byteLength(body)) : res.removeHeader("Content-Length"), res.writeHead(res.statusCode, reason), res.end(body);
       });
     }
   });
@@ -160,12 +160,12 @@ function getHandler(options, proxy) {
     originBlacklist: [],
     originWhitelist: [],
     checkRateLimit: null,
-    redirectSameOrigin: !1,
     requireHeader: null,
     removeHeaders: [],
     setHeaders: {},
     corsMaxAge: "0",
-    helpFile: __dirname + "/help.txt"
+    helpFile: __dirname + "/help.txt",
+    onReceiveResponseBody: null
   };
   corsAnywhere = {...corsAnywhere, ...options}, corsAnywhere.requireHeader && (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0 ? corsAnywhere.requireHeader = null : corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase()));
   let hasRequiredHeaders = (headers) => !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
@@ -173,7 +173,8 @@ function getHandler(options, proxy) {
     req.corsAnywhereRequestState = {
       getProxyForUrl: corsAnywhere.getProxyForUrl,
       maxRedirects: corsAnywhere.maxRedirects,
-      corsMaxAge: corsAnywhere.corsMaxAge
+      corsMaxAge: corsAnywhere.corsMaxAge,
+      onReceiveResponseBody: corsAnywhere.onReceiveResponseBody
     };
     let cors_headers = withCORS({}, req);
     if (req.method === "OPTIONS") {
@@ -213,7 +214,7 @@ function getHandler(options, proxy) {
 ` + rateLimitMessage);
       return;
     }
-    if (corsAnywhere.redirectSameOrigin && origin && location.href[origin.length] === "/" && location.href.lastIndexOf(origin, 0) === 0) {
+    if (origin && location.href[origin.length] === "/" && location.href.lastIndexOf(origin, 0) === 0) {
       cors_headers.vary = "origin", cors_headers["cache-control"] = "private", cors_headers.location = location.href, res.writeHead(301, "Please use a direct request", cors_headers), res.end();
       return;
     }

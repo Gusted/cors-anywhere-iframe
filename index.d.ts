@@ -32,12 +32,6 @@ interface CorsAnywhereOptions {
      * Default: none
      */
     checkRateLimit: (origin: string) => boolean;
-
-    /**
-     * Redirect the client to the requested URL for same-origin requests.
-     * Default: false
-     */
-    redirectSameOrigin: boolean;
     
     /**
      * Require headers on incoming requests.
@@ -68,6 +62,14 @@ interface CorsAnywhereOptions {
      * Default: workingDir/help.txt
      */
     helpFile: string;
+
+    /**
+     * Callback that is called when the Response body has been fully received.
+     * It gives a decompressed body and origin of url from body.
+     * And expects an modified decompressed body back.
+     * Default: none
+     */
+    onReceiveResponseBody: (body: string, origin: url) => string;
 }
 
 interface RateLimitOptions {

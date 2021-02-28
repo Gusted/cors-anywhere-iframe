@@ -9,7 +9,6 @@ import {TextDecoder} from 'util';
 import type httpProxy from 'http-proxy';
 import type {Url} from 'url';
 import type http from 'http';
-import type https from 'https';
 import type stream from 'stream';
 import type {EventEmitter} from 'stream';
 import type {OutgoingMessage} from 'http';
@@ -22,6 +21,7 @@ declare module 'http' {
         maxRedirects: number;
         redirectCount: number;
         corsMaxAge: string;
+        onReceiveResponseBody: (body: string) => string;
     }
     interface IncomingMessage {
         corsAnywhereRequestState: Partial<corsAnywhereRequestStateOptions>;
@@ -34,14 +34,12 @@ interface CorsAnywhereOptions {
     originBlacklist: string[];
     originWhitelist: string[];
     checkRateLimit: (origin: string) => boolean;
-    redirectSameOrigin: boolean;
     requireHeader: string[];
     removeHeaders: string[];
     setHeaders: {[header: string]: string};
     corsMaxAge: string;
     helpFile: string;
-    httpsOptions: https.ServerOptions;
-    httpProxyOptions: http.ServerOptions;
+    onReceiveResponseBody: (body: string) => string;
 }
 
 const help_text = {};
@@ -162,11 +160,9 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
 }
 
 type ContentEncoding = 'gzip' | 'deflate' | 'br';
-
 const textDecoder = new TextDecoder();
 
-
-function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: string): Buffer {
+async function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: string, callback: (body: string, origin: string) => string): Promise<Buffer> {
     let rawBody: string;
     // Decompress when needed.
     if (contentEncoding === 'gzip') {
@@ -178,7 +174,7 @@ function modifyBody(body: Buffer, contentEncoding: ContentEncoding, origin: stri
     } else {
         rawBody = textDecoder.decode(body);
     }
-    rawBody = rawBody.replace(/<head([^>]*)>/i, `<head$1><base href="${origin}">`);
+    rawBody = await Promise.resolve(callback(rawBody, origin));
     // Re-Compress when needed.
     if (contentEncoding === 'gzip') {
         body = zlib.gzipSync(rawBody);
@@ -254,7 +250,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
             .replace(/frame-ancestors?.+?(?=;|$).?/g, '')
             .replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`)
             .replace(/'self'/g, requestState.location.origin)
-            .replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl};`);
+            .replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl} inline;`);
     }
 
     proxyRes.headers['x-final-url'] = requestState.location.href;
@@ -289,11 +285,18 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
         end(chunk: any) {
             !headersSet && res.writeHead(res.statusCode);
             chunk && buffers.push(Buffer.from(chunk));
-            const body = Buffer.concat(buffers);
-            const tampered = modifyBody(body, res.getHeader('content-encoding') as ContentEncoding, requestState.location.origin);
+            const tampered = modifyBody(Buffer.concat(buffers), res.getHeader('content-encoding') as ContentEncoding, requestState.location.origin, requestState.onReceiveResponseBody);
             Promise.resolve(tampered).then((body: Buffer) => {
                 res.write = (original as any).write;
                 res.end = (original as any).end;
+
+                // Per spec of rfc7230, HTTP(1.1/) Message Syntax and Routing.
+                // The Transfer-Encoding header https://tools.ietf.org/html/rfc7230#section-3.3.1
+                // Which refers to section 4 Transfer Codecs. Whereby chunked refers to 4.1
+                // Specific 4.1.2, https://tools.ietf.org/html/rfc7230#section-4.1.2
+                // "A sender MUST NOT generate a trailer that contains a field necessary
+                // for message framing (e.g., Transfer-Encoding and Content-Length)"
+                // And thus do not set the Content-Length when chucked transfer encoded.
                 if (res.getHeader('transfer-encoding') !== 'chunked') {
                     res.setHeader('Content-Length', Buffer.byteLength(body));
                 } else {
@@ -350,18 +353,18 @@ function parseURL(req_url: string): URL {
 // Request handler factory
 export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpProxy) {
     // Default options.
-    let corsAnywhere: Partial<CorsAnywhereOptions> = {
+    let corsAnywhere: CorsAnywhereOptions = {
         getProxyForUrl: getProxyForUrl,
         maxRedirects: 5,
         originBlacklist: [],
         originWhitelist: [],
         checkRateLimit: null,
-        redirectSameOrigin: false,
         requireHeader: null,
         removeHeaders: [],
         setHeaders: {},
         corsMaxAge: '0',
         helpFile: __dirname + '/help.txt',
+        onReceiveResponseBody: null,
     };
 
     corsAnywhere = {...corsAnywhere, ...options};
@@ -381,6 +384,7 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
             getProxyForUrl: corsAnywhere.getProxyForUrl,
             maxRedirects: corsAnywhere.maxRedirects,
             corsMaxAge: corsAnywhere.corsMaxAge,
+            onReceiveResponseBody: corsAnywhere.onReceiveResponseBody
         };
 
         const cors_headers = withCORS({}, req);
@@ -439,7 +443,7 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
             return;
         }
 
-        if (corsAnywhere.redirectSameOrigin && origin && location.href[origin.length] === '/' && location.href.lastIndexOf(origin, 0) === 0) {
+        if (origin && location.href[origin.length] === '/' && location.href.lastIndexOf(origin, 0) === 0) {
             // Send a permanent redirect to offload the server. Badly coded clients should not waste our resources.
             cors_headers['vary'] = 'origin';
             cors_headers['cache-control'] = 'private';
