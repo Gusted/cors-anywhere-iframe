@@ -58,18 +58,12 @@ interface CorsAnywhereOptions {
     corsMaxAge: string;
 
     /**
-     * Absolute path to help.txt
-     * Default: workingDir/help.txt
-     */
-    helpFile: string;
-
-    /**
      * Callback that is called when the Response body has been fully received.
      * It gives a decompressed body and origin of url from body.
      * And expects an modified decompressed body back.
      * Default: none
      */
-    onReceiveResponseBody: (body: string, origin: url) => string;
+    onReceiveResponseBody: (body: string, origin: string) => string;
 }
 
 interface RateLimitOptions {

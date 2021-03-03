@@ -3,7 +3,6 @@ import regexp_tld from './regexp-top-level-domain';
 import createRateLimiter from './rate-limit';
 import {getProxyForUrl} from 'proxy-from-env';
 import {URL} from 'url';
-import fs from 'fs';
 import zlib from 'zlib';
 import {TextDecoder} from 'util';
 import type httpProxy from 'http-proxy';
@@ -38,29 +37,7 @@ interface CorsAnywhereOptions {
     removeHeaders: string[];
     setHeaders: {[header: string]: string};
     corsMaxAge: string;
-    helpFile: string;
     onReceiveResponseBody: (body: string) => string;
-}
-
-const help_text = {};
-function showUsage(help_file: string, headers: http.IncomingHttpHeaders, response: http.ServerResponse) {
-    const isHtml = /\.html$/.test(help_file);
-    headers['content-type'] = isHtml ? 'text/html' : 'text/plain';
-    if (help_text[help_file] != null) {
-        response.writeHead(200, headers);
-        response.end(help_text[help_file]);
-    } else {
-        fs.readFile(help_file, 'utf8', (err: NodeJS.ErrnoException, data: string) => {
-            if (err) {
-                console.error(err);
-                response.writeHead(500, headers);
-                response.end();
-            } else {
-                help_text[help_file] = data;
-                showUsage(help_file, headers, response); // Recursive call, but since data is a string, the recursion will end
-            }
-        });
-    }
 }
 
 /**
@@ -363,7 +340,6 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         removeHeaders: [],
         setHeaders: {},
         corsMaxAge: '0',
-        helpFile: __dirname + '/help.txt',
         onReceiveResponseBody: null,
     };
 
@@ -398,8 +374,8 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         const location = parseURL(req.url);
 
         if (!location) {
-            // Invalid API call. Show how to correctly use the API
-            showUsage(corsAnywhere.helpFile, cors_headers, res);
+            res.writeHead(404, 'Invalid Usage', cors_headers);
+            res.end('Invalid Usage\nRefer to documenation.');
             return;
         }
 

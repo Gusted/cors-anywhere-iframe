@@ -54,13 +54,7 @@ function createRateLimitChecker(options) {
 }
 
 // src/cors-anywhere-iframe.ts
-var import_proxy_from_env = __toModule(require("proxy-from-env")), import_url = __toModule(require("url")), import_fs = __toModule(require("fs")), import_zlib = __toModule(require("zlib")), import_util = __toModule(require("util")), help_text = {};
-function showUsage(help_file, headers, response) {
-  let isHtml = /\.html$/.test(help_file);
-  headers["content-type"] = isHtml ? "text/html" : "text/plain", help_text[help_file] != null ? (response.writeHead(200, headers), response.end(help_text[help_file])) : import_fs.default.readFile(help_file, "utf8", (err, data) => {
-    err ? (console.error(err), response.writeHead(500, headers), response.end()) : (help_text[help_file] = data, showUsage(help_file, headers, response));
-  });
-}
+var import_proxy_from_env = __toModule(require("proxy-from-env")), import_url = __toModule(require("url")), import_zlib = __toModule(require("zlib")), import_util = __toModule(require("util"));
 function isValidHostName(hostname) {
   return !!(regexp_top_level_domain_default.test(hostname) || import_net.isIPv4(hostname) || import_net.isIPv6(hostname));
 }
@@ -164,7 +158,6 @@ function getHandler(options, proxy) {
     removeHeaders: [],
     setHeaders: {},
     corsMaxAge: "0",
-    helpFile: __dirname + "/help.txt",
     onReceiveResponseBody: null
   };
   corsAnywhere = {...corsAnywhere, ...options}, corsAnywhere.requireHeader && (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0 ? corsAnywhere.requireHeader = null : corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase()));
@@ -184,7 +177,8 @@ function getHandler(options, proxy) {
     req.url = decodeURIComponent(req.url);
     let location = parseURL(req.url);
     if (!location) {
-      showUsage(corsAnywhere.helpFile, cors_headers, res);
+      res.writeHead(404, "Invalid Usage", cors_headers), res.end(`Invalid Usage
+Refer to documenation.`);
       return;
     }
     if (parseInt(location.port) > 65535) {
