@@ -29,6 +29,7 @@
     "@typescript-eslint/parser": "4.15.1",
     "esbuild": "0.8.49",
     "eslint": "7.20.0",
+    "eslint-plugin-unicorn": "28.0.2",
     "typescript": "4.1.5"
   },
   "scripts": {

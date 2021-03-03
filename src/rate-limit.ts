@@ -14,7 +14,7 @@ export default function createRateLimitChecker(options: RateLimitOptions) {
     const hostPatternRegExps: RegExp[] = [];
     if (sites) {
         sites.forEach((host) => {
-            host = host.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&').replace(/-/g, '\\x2d').replace(/\\\*/g, '[\\s\\S]*');
+            host = host.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&').replace(/-/g, '\\x2d').replace(/\\\*/g, '[\\s\\S]*');
             const regexp = new RegExp(`^${host}(?![A-Za-z0-9])`, 'i');
             hostPatternRegExps.push(regexp);
         });
@@ -23,7 +23,7 @@ export default function createRateLimitChecker(options: RateLimitOptions) {
     const accessedHosts: Map<string, number> = new Map();
     setInterval(() => {
         accessedHosts.clear();
-    }, options.periodInMinutes * 60000);
+    }, periodInMinutes * 60000);
 
     const rateLimitMessage = `The number of requests is limited to ${maxRequestsPerPeriod}
     ${periodInMinutes === 1 ? ' per minute' : ' per ' + periodInMinutes + ' minutes'}. 

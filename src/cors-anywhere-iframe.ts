@@ -299,11 +299,11 @@ function patch<T>(obj: T, properties: T): Partial<T> {
 }
 
 function parseURL(req_url: string): URL {
-    const match = req_url.match(/^(?:(https?:)?\/\/)?(([^\/?]+?)(?::(\d{0,5})(?=[\/?]|$))?)([\/?][\S\s]*|$)/i);
-    //                              ^^^^^^^          ^^^^^^^^      ^^^^^^^                ^^^^^^^^^^^^
-    //                            1:protocol       3:hostname     4:port                 5:path + query string
-    //                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    //                                            2:host
+    const match = req_url.match(/^(?:(https?:)?\/\/)?(([^/?]+?)(?::(\d{0,5})(?=[/?]|$))?)([/?][\S\s]*|$)/i);
+    //                                ^^^^^^^          ^^^^^^^      ^^^^^^^                ^^^^^^^^^^
+    //                              1:protocol       3:hostname   4:port                 5:path + query string
+    //                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //                                               2:host
     if (!match) {
         return null;
     }
