@@ -28,14 +28,14 @@ function createRateLimitChecker(options) {
   options = {maxRequestsPerPeriod: 10, periodInMinutes: 1, sites: [], ...options};
   let hostPatternRegExps = [];
   sites && sites.forEach((host) => {
-    host = host.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*");
+    host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*");
     let regexp = new RegExp(`^${host}(?![A-Za-z0-9])`, "i");
     hostPatternRegExps.push(regexp);
   });
   let accessedHosts = new Map();
   setInterval(() => {
     accessedHosts.clear();
-  }, options.periodInMinutes * 6e4);
+  }, periodInMinutes * 6e4);
   let rateLimitMessage = `The number of requests is limited to ${maxRequestsPerPeriod}
     ${periodInMinutes === 1 ? " per minute" : " per " + periodInMinutes + " minutes"}. 
     Please self-host CORS Anywhere IFrame if you need more quota.`;
@@ -136,7 +136,7 @@ function patch(obj, properties) {
   return old;
 }
 function parseURL(req_url) {
-  let match = req_url.match(/^(?:(https?:)?\/\/)?(([^\/?]+?)(?::(\d{0,5})(?=[\/?]|$))?)([\/?][\S\s]*|$)/i);
+  let match = req_url.match(/^(?:(https?:)?\/\/)?(([^/?]+?)(?::(\d{0,5})(?=[/?]|$))?)([/?][\S\s]*|$)/i);
   if (!match)
     return null;
   if (!match[1]) {
