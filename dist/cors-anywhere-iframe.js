@@ -28,9 +28,7 @@ function createRateLimitChecker(options) {
   options = {maxRequestsPerPeriod: 10, periodInMinutes: 1, sites: [], ...options};
   let hostPatternRegExps = [];
   sites && sites.forEach((host) => {
-    host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*");
-    let regexp = new RegExp(`^${host}(?![A-Za-z0-9])`, "i");
-    hostPatternRegExps.push(regexp);
+    host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*"), hostPatternRegExps.push(new RegExp(`^${host}(?![A-Za-z0-9])`, "i"));
   });
   let accessedHosts = new Map();
   setInterval(() => {
@@ -56,7 +54,7 @@ function createRateLimitChecker(options) {
 // src/cors-anywhere-iframe.ts
 var import_proxy_from_env = __toModule(require("proxy-from-env")), import_url = __toModule(require("url")), import_zlib = __toModule(require("zlib")), import_util = __toModule(require("util"));
 function isValidHostName(hostname) {
-  return !!(regexp_top_level_domain_default.test(hostname) || import_net.isIPv4(hostname) || import_net.isIPv6(hostname));
+  return regexp_top_level_domain_default.test(hostname) || import_net.isIPv4(hostname) || import_net.isIPv6(hostname);
 }
 function withCORS(headers, request) {
   headers["access-control-allow-origin"] = "*";

@@ -15,8 +15,7 @@ export default function createRateLimitChecker(options: RateLimitOptions) {
     if (sites) {
         sites.forEach((host) => {
             host = host.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&').replace(/-/g, '\\x2d').replace(/\\\*/g, '[\\s\\S]*');
-            const regexp = new RegExp(`^${host}(?![A-Za-z0-9])`, 'i');
-            hostPatternRegExps.push(regexp);
+            hostPatternRegExps.push(new RegExp(`^${host}(?![A-Za-z0-9])`, 'i'));
         });
     }
 

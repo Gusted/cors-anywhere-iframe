@@ -44,7 +44,7 @@ interface CorsAnywhereOptions {
  * Check whether the specified hostname is valid.
  */
 function isValidHostName(hostname: string): boolean {
-    return !!(
+    return (
         regexp_tld.test(hostname) ||
         isIPv4(hostname) ||
         isIPv6(hostname)
