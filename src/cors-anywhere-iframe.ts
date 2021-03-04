@@ -55,11 +55,17 @@ function isValidHostName(hostname: string): boolean {
  * Adds CORS headers to the response headers.
  */
 function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessage): http.IncomingHttpHeaders {
-    headers['access-control-allow-origin'] = '*';
-    const corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
-    if (request.method === 'OPTIONS' && corsMaxAge) {
-        headers['access-control-max-age'] = corsMaxAge;
+    if (request.method === 'OPTIONS') {
+        const corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
+        if (corsMaxAge) {
+            headers['access-control-max-age'] = corsMaxAge;
+        }
+    } else {
+        headers['access-control-expose-headers'] = Object.keys(headers).filter((header) =>
+            header.match(/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/) ? false : header
+        ).join(',');
     }
+    headers['access-control-allow-origin'] = '*';
     if (request.headers['access-control-request-method']) {
         headers['access-control-allow-methods'] = request.headers['access-control-request-method'];
         delete request.headers['access-control-request-method'];
@@ -68,9 +74,6 @@ function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessa
         headers['access-control-allow-headers'] = request.headers['access-control-request-headers'];
         delete request.headers['access-control-request-headers'];
     }
-
-    headers['access-control-expose-headers'] = Object.keys(headers).join(',');
-
     return headers;
 }
 

@@ -57,9 +57,12 @@ function isValidHostName(hostname) {
   return regexp_top_level_domain_default.test(hostname) || import_net.isIPv4(hostname) || import_net.isIPv6(hostname);
 }
 function withCORS(headers, request) {
-  headers["access-control-allow-origin"] = "*";
-  let corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
-  return request.method === "OPTIONS" && corsMaxAge && (headers["access-control-max-age"] = corsMaxAge), request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers["access-control-expose-headers"] = Object.keys(headers).join(","), headers;
+  if (request.method === "OPTIONS") {
+    let corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
+    corsMaxAge && (headers["access-control-max-age"] = corsMaxAge);
+  } else
+    headers["access-control-expose-headers"] = Object.keys(headers).filter((header) => header.match(/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/) ? !1 : header).join(",");
+  return headers["access-control-allow-origin"] = "*", request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers;
 }
 function proxyRequest(req, res, proxy) {
   let location = req.corsAnywhereRequestState.location, proxyOptions = {
