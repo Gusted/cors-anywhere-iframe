@@ -1,3 +1,4 @@
+//@ts-check
 const {execFile} = require('child_process');
 
 async function typeCheck() {

@@ -1,3 +1,4 @@
+//@ts-check
 const bundleJS = require('./bundle-js');
 const typeCheck = require('./type-check');
 

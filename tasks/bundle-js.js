@@ -1,3 +1,4 @@
+//@ts-check
 const {build} = require('esbuild');
 
 async function bundleJS({release}) {
