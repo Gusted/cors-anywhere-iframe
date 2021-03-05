@@ -12,6 +12,8 @@ import type stream from 'stream';
 import type {EventEmitter} from 'stream';
 import type {OutgoingMessage} from 'http';
 
+type headerType = {[header: string]: any};
+
 declare module 'http' {
     interface corsAnywhereRequestStateOptions {
         location: URL;
@@ -35,7 +37,7 @@ interface CorsAnywhereOptions {
     checkRateLimit: (origin: string) => boolean;
     requireHeader: string[];
     removeHeaders: string[];
-    setHeaders: {[header: string]: string};
+    setHeaders: headerType;
     corsMaxAge: string;
     onReceiveResponseBody: (body: string) => string;
 }
@@ -223,6 +225,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     // Remove IFrame deny protection.
     delete proxyRes.headers['x-frame-options'];
     delete proxyRes.headers['x-xss-protection'];
+    delete proxyRes.headers['x-content-type-options'];
 
     // Remove IFrame protection.
     if (proxyRes.headers['content-security-policy']) {
@@ -241,7 +244,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     let headersSet = false;
 
     const original = patch(res, {
-        writeHead(statusCode: number, reasonPhrase: string, headers: {[header: string]: any}) {
+        writeHead(statusCode: number, reasonPhrase: string, headers: headerType) {
             if (typeof reasonPhrase == 'object') {
                 headers = reasonPhrase;
                 reasonPhrase = undefined;
@@ -292,8 +295,8 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
 }
 
 
-function patch<T>(obj: T, properties: T): Partial<T> {
-    const old: Partial<T> = {};
+function patch<T>(obj: T, properties: Partial<T>): T {
+    const old: T = {} as T;
     for (const name in properties) {
         old[name] = obj[name];
         obj[name] = properties[name];
@@ -350,14 +353,10 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
 
     // Convert corsAnywhere.requireHeader to an array of lowercase header names, or null.
     if (corsAnywhere.requireHeader) {
-        if (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0) {
-            corsAnywhere.requireHeader = null;
-        } else {
-            corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase());
-        }
+        corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase());
     }
-    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
 
+    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
     return (req: http.IncomingMessage, res: http.ServerResponse) => {
         req.corsAnywhereRequestState = {
             getProxyForUrl: corsAnywhere.getProxyForUrl,
@@ -396,14 +395,14 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
             return;
         }
 
-        if (!hasRequiredHeaders(req.headers)) {
+        if (corsAnywhere.requireHeader && !hasRequiredHeaders(req.headers)) {
             res.writeHead(400, 'Header required', cors_headers);
             res.end('Missing required request header. Must specify one of: ' + corsAnywhere.requireHeader);
             return;
         }
 
         const origin = req.headers.origin || '';
-        if (corsAnywhere.originBlacklist.indexOf(origin) >= 0) {
+        if (corsAnywhere.originBlacklist.indexOf(origin) > -1) {
             res.writeHead(403, 'Forbidden', cors_headers);
             res.end('The origin "' + origin + '" was blacklisted by the operator of this proxy.');
             return;
@@ -436,7 +435,6 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         const proxyBaseUrl = (isRequestedOverHttps ? 'https://' : 'http://') + req.headers.host;
 
         corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]);
-
         req.headers = {...req.headers, ...corsAnywhere.setHeaders};
 
         req.corsAnywhereRequestState.location = location;

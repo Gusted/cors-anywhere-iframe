@@ -109,7 +109,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
-  delete proxyRes.headers["x-frame-options"], delete proxyRes.headers["x-xss-protection"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestors?.+?(?=;|$).?/g, "").replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl} inline;`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
+  delete proxyRes.headers["x-frame-options"], delete proxyRes.headers["x-xss-protection"], delete proxyRes.headers["x-content-type-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestors?.+?(?=;|$).?/g, "").replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl} inline;`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
   let buffers = [], reason, headersSet = !1, original = patch(res, {
     writeHead(statusCode2, reasonPhrase, headers) {
       typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
@@ -161,8 +161,8 @@ function getHandler(options, proxy) {
     corsMaxAge: "0",
     onReceiveResponseBody: null
   };
-  corsAnywhere = {...corsAnywhere, ...options}, corsAnywhere.requireHeader && (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0 ? corsAnywhere.requireHeader = null : corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase()));
-  let hasRequiredHeaders = (headers) => !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
+  corsAnywhere = {...corsAnywhere, ...options}, corsAnywhere.requireHeader && (corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase()));
+  let hasRequiredHeaders = (headers) => corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
   return (req, res) => {
     req.corsAnywhereRequestState = {
       getProxyForUrl: corsAnywhere.getProxyForUrl,
@@ -190,12 +190,12 @@ Refer to documenation.`);
       res.writeHead(404, "Invalid host", cors_headers), res.end("Invalid host: " + location.hostname);
       return;
     }
-    if (!hasRequiredHeaders(req.headers)) {
+    if (corsAnywhere.requireHeader && !hasRequiredHeaders(req.headers)) {
       res.writeHead(400, "Header required", cors_headers), res.end("Missing required request header. Must specify one of: " + corsAnywhere.requireHeader);
       return;
     }
     let origin = req.headers.origin || "";
-    if (corsAnywhere.originBlacklist.indexOf(origin) >= 0) {
+    if (corsAnywhere.originBlacklist.indexOf(origin) > -1) {
       res.writeHead(403, "Forbidden", cors_headers), res.end('The origin "' + origin + '" was blacklisted by the operator of this proxy.');
       return;
     }
