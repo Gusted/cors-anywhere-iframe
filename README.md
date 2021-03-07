@@ -1,9 +1,9 @@
-Fork of Cors-Anywhere purely optimized for IFrame usages.
-All credits belongs to Rob Wu.
+Fork of Cors-Anywhere purely optimized for IFrame usages.  
+Credits to Rob Wu for the originial codebase.
 
 ## License
 
-Copyright (C) 2013 - 2016 Rob Wu <rob@robwu.nl>
+Copyright (C) 2013 - 2016 Rob Wu <rob@robwu.nl>  
 Copyright (C) 2021 William Zijl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
