@@ -213,7 +213,7 @@ Refer to documenation.`);
       cors_headers.vary = "origin", cors_headers["cache-control"] = "private", cors_headers.location = location.href, res.writeHead(301, "Please use a direct request", cors_headers), res.end();
       return;
     }
-    let proxyBaseUrl = (/^\s*https/.test(req["x-forwarded-proto"]) ? "https://" : "http://") + req.headers.host;
+    let proxyBaseUrl = (/^\s*https/.test(req["x-forwarded-proto"]) ? "https://" : "http://") + (req.headers["x-vercel-deployment-url"] || req.headers["x-forwarded-host"] || req.headers.host);
     corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]), req.headers = {...req.headers, ...corsAnywhere.setHeaders}, req.corsAnywhereRequestState.location = location, req.corsAnywhereRequestState.proxyBaseUrl = proxyBaseUrl, proxyRequest(req, res, proxy);
   };
 }

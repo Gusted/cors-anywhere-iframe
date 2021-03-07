@@ -432,7 +432,14 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         }
 
         const isRequestedOverHttps = /^\s*https/.test(req['x-forwarded-proto'] as string);
-        const proxyBaseUrl = (isRequestedOverHttps ? 'https://' : 'http://') + req.headers.host;
+        // Vercel's now server. Starts the real server on another port.
+        // Which is the same as req.header.host.
+        // So getting the custom header we can get the `real` host.
+        const proxyBaseUrl = (isRequestedOverHttps ? 'https://' : 'http://') + (
+            req.headers['x-vercel-deployment-url'] ||
+            req.headers['x-forwarded-host'] ||
+            req.headers.host
+        );
 
         corsAnywhere.removeHeaders.forEach((header) => delete req.headers[header]);
         req.headers = {...req.headers, ...corsAnywhere.setHeaders};
