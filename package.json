@@ -39,6 +39,7 @@
   "scripts": {
     "build": "node tasks/build.js",
     "code-style": "eslint --cache --fix \"src/**/*.ts\" \"tasks/**/*.js\" \"tests/**/*.ts\" \"tests/**/*.js\" \".eslintrc.js\"",
+    "lint": "eslint \"src/**/*.ts\" \"tasks/**/*.js\" \"tests/**/*.ts\" \"tests/**/*.js\" \".eslintrc.js\"",
     "release": "node tasks/build.js --release",
     "update-top-level": "node tasks/update-top-level.js",
     "test": "npm run release && jest --config=tests/jest.config.js",

@@ -1,4 +1,4 @@
-Fork of Cors-Anywhere purely optimized for IFrame usages.  
+Fork of Cors-Anywhere purely optimized for IFrame usages with in mind for [darkreader-web](https://github.com/Gusted/darkreader-web/).  
 Credits to Rob Wu for the originial codebase.
 
 ## License
