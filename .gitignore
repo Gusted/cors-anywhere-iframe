@@ -1,3 +1,6 @@
+# Yarn
 node_modules/
+
+# Caching
 .eslintcache
 tsconfig.tsbuildinfo
