@@ -11,7 +11,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-jobs:
 
 jobs:
   install:
