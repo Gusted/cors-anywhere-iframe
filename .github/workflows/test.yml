@@ -15,7 +15,7 @@ on:
 jobs:
   install:
     name: Install dependencies
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -47,7 +47,7 @@ jobs:
             node_modules
             */*/node_modules
           key: ${{ runner.os }}-install-${{ hashFiles('**/package.json', '**/yarn.lock') }}
-      - run: yarn install && yarn run test
+      - run: yarn install && yarn run test:ci
   
   lint:
     name: Run lint
