@@ -4,3 +4,4 @@ node_modules/
 # Caching
 .eslintcache
 tsconfig.tsbuildinfo
+.jest-cache/

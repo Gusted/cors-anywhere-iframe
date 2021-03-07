@@ -42,9 +42,9 @@
     "lint": "eslint \"src/**/*.ts\" \"tasks/**/*.js\" \"tests/**/*.ts\" \"tests/**/*.js\" \".eslintrc.js\"",
     "release": "node tasks/build.js --release",
     "update-top-level": "node tasks/update-top-level.js",
-    "test": "npm run release && jest --config=tests/jest.config.js",
+    "test": "npm run release && jest --runInBand --config=tests/jest.config.js",
     "test:debug": "npm run build && node --inspect-brk ./node_modules/jest/bin/jest --config=tests/jest.config.js --runInBand --no-cache --watch",
-    "test:ci": "jest --config=tests/jest.config.js"
+    "test:ci": "jest --config=tests/jest.config.js --runInBand"
   },
   "engines": {
     "node": ">=0.10.0"
