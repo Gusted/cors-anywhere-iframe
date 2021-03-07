@@ -47,7 +47,7 @@ jobs:
             node_modules
             */*/node_modules
           key: ${{ runner.os }}-install-${{ hashFiles('**/package.json', '**/yarn.lock') }}
-      - run: yarn install && yarn run test:ci
+      - run: yarn install --prefer-offline && yarn run test:ci
   
   lint:
     name: Run lint
@@ -65,4 +65,4 @@ jobs:
             node_modules
             */*/node_modules
           key: ${{ runner.os }}-install-${{ hashFiles('**/package.json', '**/yarn.lock') }}
-      - run: yarn install && yarn run lint
+      - run: yarn install --prefer-offline && yarn run lint
