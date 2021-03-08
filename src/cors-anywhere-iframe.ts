@@ -94,12 +94,12 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
             host: location.host,
         },
         // HACK: Get hold of the proxyReq object, because we need it later.
-        // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L144
+        // https://github.com/http-party/node-http-proxy/blob/master/lib/http-proxy/passes/web-incoming.js#L170
         buffer: {
             pipe: (proxyReq: OutgoingMessage) => {
                 const proxyReqOn = proxyReq.on;
                 // Intercepts the handler that connects proxyRes to res.
-                // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L146-L158
+                // https://github.com/http-party/node-http-proxy/blob/master/lib/http-proxy/passes/web-incoming.js#L172-L191
                 proxyReq.on = (eventName: string, listener: (...args: any) => void) => {
                     if (eventName !== 'response') {
                         return proxyReqOn.call(proxyReq, eventName, listener);
@@ -115,7 +115,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
                                 // https://github.com/nodejitsu/node-http-proxy/issues/1080
 
                                 // Forward error (will ultimately emit the 'error' event on our proxy object):
-                                // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
+                                // https://github.com/http-party/node-http-proxy/blob/master/lib/http-proxy/passes/web-incoming.js#L153
                                 proxyReq.emit('error', err);
                             }
                         }
@@ -209,7 +209,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
 
                     // Remove the error listener so that the ECONNRESET "error" that
                     // may occur after aborting a request does not propagate to res.
-                    // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
+                    // https://github.com/http-party/node-http-proxy/blob/master/lib/http-proxy/passes/web-incoming.js#L153
                     proxyReq.removeAllListeners('error');
                     proxyReq.once('error', () => void 0);
                     (proxyReq as any).abort();
