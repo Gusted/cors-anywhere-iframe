@@ -2,7 +2,7 @@ import type {Server} from 'http';
 import {createServer} from 'http';
 import {getHandler} from '../../src/cors-anywhere-iframe';
 import httpProxy from 'http-proxy';
-import type {corsAnywhereRequestStateOptions} from 'node:http';
+import type {CorsAnywhereOptions} from '../../index';
 
 const proxyServer = httpProxy.createServer();
 proxyServer.on('error', (err, _, res) => {
@@ -16,12 +16,12 @@ proxyServer.on('error', (err, _, res) => {
     headerNames.forEach((name) => res.removeHeader(name));
     // Use the unfamous teapot HTTP code.
     // To determine the error type inside the test message.
-    res.writeHead(416, {'Access-Control-Allow-Origin': '*'});
+    res.writeHead(418, {'Access-Control-Allow-Origin': '*'});
     res.end('Not found because of proxy error: ' + err);
 });
 
 
-export function createProxyServer(options: Partial<corsAnywhereRequestStateOptions>, port: number) {
+export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: number) {
     let server: Server;
 
     const handler = getHandler(options, proxyServer);
@@ -31,6 +31,10 @@ export function createProxyServer(options: Partial<corsAnywhereRequestStateOptio
             req.url = req.url.slice(1);
             handler(req, res);
         }).listen(port);
+        server.on('error', (err) => {
+            console.log(err);
+        });
+        
     }
 
     function close() {

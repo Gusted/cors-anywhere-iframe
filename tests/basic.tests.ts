@@ -1,7 +1,9 @@
 import {createProxyServer} from './utils/http-server';
 import request from 'supertest';
 import path from 'path';
+import net from 'net';
 import type {Server} from 'http';
+import {createServer} from 'http';
 import mockRequests, {disableMocking} from './utils/mock-requests';
 import assert from 'assert';
 
@@ -320,4 +322,57 @@ describe('Basic functionality', () => {
             }, done);
     });
 
+});
+
+describe('Proxy errors', function () {
+    let server: Server;
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        cors_anywhere = createProxyServer({}, PORT);
+        mockRequests();
+    });
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('Declare server variable', () => {
+        server = cors_anywhere.server;
+    });
+
+    let bad_http_server: Server;
+    const bad_http_server_port = 4031;
+    const bad_http_server_url = `http://0.0.0.0:${bad_http_server_port}`;
+    beforeAll(() => {
+        bad_http_server = createServer((_, res) => {
+            res.writeHead(418, {
+                'Content-Length': 'Not a digit',
+            });
+            res.end('This response has an invalid Content-Length header.');
+        });
+        bad_http_server.listen(bad_http_server_port, '0.0.0.0');
+    });
+    afterAll((done) =>{
+        bad_http_server.close(done);
+    });
+
+    it('Proxy error', (done) => {
+        request(server)
+            .get('/example.com/proxyerror')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(418, 'Not found because of proxy error: Error: throw node', done);
+    });
+
+    it('Content-Length mismatch', (done) => {
+        const errorMessage = 'Error: Parse Error: Invalid character in Content-Length';
+        request(server)
+            .get('/' + bad_http_server_url)
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(418, 'Not found because of proxy error: ' + errorMessage, done);
+    });
 });

@@ -22,7 +22,7 @@ declare module 'http' {
         maxRedirects: number;
         redirectCount: number;
         corsMaxAge: string;
-        onReceiveResponseBody: (body: string) => string;
+        onReceiveResponseBody: (body: string, origin: string) => string;
     }
     interface IncomingMessage {
         corsAnywhereRequestState: Partial<corsAnywhereRequestStateOptions>;
@@ -39,7 +39,7 @@ interface CorsAnywhereOptions {
     removeHeaders: string[];
     setHeaders: headerType;
     corsMaxAge: string;
-    onReceiveResponseBody: (body: string) => string;
+    onReceiveResponseBody: (body: string, origin: string) => string;
 }
 
 /**
