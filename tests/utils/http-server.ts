@@ -14,7 +14,9 @@ proxyServer.on('error', (err, _, res) => {
     }
     const headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res.getHeaders() || {});
     headerNames.forEach((name) => res.removeHeader(name));
-    res.writeHead(404, {'Access-Control-Allow-Origin': '*'});
+    // Use the unfamous teapot HTTP code.
+    // To determine the error type inside the test message.
+    res.writeHead(416, {'Access-Control-Allow-Origin': '*'});
     res.end('Not found because of proxy error: ' + err);
 });
 
@@ -22,8 +24,13 @@ proxyServer.on('error', (err, _, res) => {
 export function createProxyServer(options: Partial<corsAnywhereRequestStateOptions>, port: number) {
     let server: Server;
 
+    const handler = getHandler(options, proxyServer);
+
     function start() {
-        server = createServer(getHandler(options, proxyServer)).listen(port);
+        server = createServer((req, res) => {
+            req.url = req.url.slice(1);
+            handler(req, res);
+        }).listen(port);
     }
 
     function close() {
