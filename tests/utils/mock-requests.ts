@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { Url } from 'url';
+import type {Url} from 'url';
 
 export default function mockRequests() {
     nock.enableNetConnect();
@@ -114,8 +114,8 @@ function echoheaders(origin: string | RegExp | Url) {
     nock(origin)
         .persist()
         .get('/echoheaders')
-        .reply(() => {
-            const headers = this.req.headers;
+        .reply(200, function () {
+            const headers: Record<string, string> = this.req.headers;
             const excluded_headers = [
                 'accept-encoding',
                 'user-agent',
@@ -127,12 +127,7 @@ function echoheaders(origin: string | RegExp | Url) {
             if (!('test-include-xfwd' in headers)) {
                 excluded_headers.push('x-forwarded-port', 'x-forwarded-proto');
             }
-            const response = {};
-            Object.keys(headers).forEach(function (name) {
-                if (excluded_headers.indexOf(name) === -1) {
-                    response[name] = headers[name];
-                }
-            });
+            const response: string[] = Object.keys(headers).filter((header) => !(excluded_headers.includes(header)));
             return response;
         });
 }

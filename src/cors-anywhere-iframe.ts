@@ -184,7 +184,11 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
         let locationHeader = proxyRes.headers.location;
         let parsedLocation: URL;
         if (locationHeader) {
-            locationHeader = new URL(locationHeader, requestState.location.href).href;
+            try {
+                locationHeader = new URL(locationHeader, requestState.location.href).href;
+            } catch (err) {
+                void 0;
+            }
             parsedLocation = parseURL(locationHeader);
         }
         if (parsedLocation) {
