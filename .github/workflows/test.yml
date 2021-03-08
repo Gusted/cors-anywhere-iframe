@@ -14,7 +14,7 @@ on:
 
 jobs:
   test:
-    name: Install dependencies
+    name: Basic CI Job
     runs-on: Ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -29,7 +29,7 @@ jobs:
             */*/node_modules
           key: ${{ runner.os }}-install-${{ hashFiles('**/package.json', '**/yarn.lock') }}
       - run: yarn install
-        if: ${{ steps.yarn-cache.outputs.cache-hit == 'false' }}
+        if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
       
       - run: yarn install --prefers-offline
         if: ${{ steps.yarn-cache.outputs.cache-hit == 'true' }}
