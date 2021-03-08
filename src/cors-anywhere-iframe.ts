@@ -84,6 +84,7 @@ function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessa
  */
 function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy: EventEmitter) {
     const location = req.corsAnywhereRequestState.location;
+    req.url = location.href;
 
     const proxyOptions: httpProxy.ServerOptions = {
         changeOrigin: false,
@@ -243,53 +244,55 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
     let reason: string;
     let headersSet = false;
 
-    const original = patch(res, {
-        writeHead(statusCode: number, reasonPhrase: string, headers: headerType) {
-            if (typeof reasonPhrase == 'object') {
-                headers = reasonPhrase;
-                reasonPhrase = undefined;
-            }
-
-            res.statusCode = statusCode;
-            reason = reasonPhrase;
-
-            for (const name in headers) {
-                res.setHeader(name, headers[name]);
-            }
-            headersSet = true;
-
-            res.writeHead = original.writeHead;
-        },
-        write(chunk: any) {
-            !headersSet && res.writeHead(res.statusCode);
-            chunk && buffers.push(Buffer.from(chunk));
-        },
-
-        end(chunk: any) {
-            !headersSet && res.writeHead(res.statusCode);
-            chunk && buffers.push(Buffer.from(chunk));
-            const tampered = modifyBody(Buffer.concat(buffers), res.getHeader('content-encoding') as ContentEncoding, requestState.location.origin, requestState.onReceiveResponseBody);
-            Promise.resolve(tampered).then((body: Buffer) => {
-                res.write = (original as any).write;
-                res.end = (original as any).end;
-
-                // Per spec of rfc7230, HTTP(1.1/) Message Syntax and Routing.
-                // The Transfer-Encoding header https://tools.ietf.org/html/rfc7230#section-3.3.1
-                // Which refers to section 4 Transfer Codecs. Whereby chunked refers to 4.1
-                // Specific 4.1.2, https://tools.ietf.org/html/rfc7230#section-4.1.2
-                // "A sender MUST NOT generate a trailer that contains a field necessary
-                // for message framing (e.g., Transfer-Encoding and Content-Length)"
-                // And thus do not set the Content-Length when chucked transfer encoded.
-                if (res.getHeader('transfer-encoding') !== 'chunked') {
-                    res.setHeader('Content-Length', Buffer.byteLength(body));
-                } else {
-                    res.removeHeader('Content-Length');
+    if (requestState.onReceiveResponseBody) {
+        const original = patch(res, {
+            writeHead(statusCode: number, reasonPhrase: string, headers: headerType) {
+                if (typeof reasonPhrase == 'object') {
+                    headers = reasonPhrase;
+                    reasonPhrase = undefined;
                 }
-                res.writeHead(res.statusCode, reason);
-                res.end(body);
-            });
-        }
-    } as typeof res);
+
+                res.statusCode = statusCode;
+                reason = reasonPhrase;
+
+                for (const name in headers) {
+                    res.setHeader(name, headers[name]);
+                }
+                headersSet = true;
+
+                res.writeHead = original.writeHead;
+            },
+            write(chunk: any) {
+                !headersSet && res.writeHead(res.statusCode);
+                chunk && buffers.push(Buffer.from(chunk));
+            },
+
+            end(chunk: any) {
+                !headersSet && res.writeHead(res.statusCode);
+                chunk && buffers.push(Buffer.from(chunk));
+                const tampered = modifyBody(Buffer.concat(buffers), res.getHeader('content-encoding') as ContentEncoding, requestState.location.origin, requestState.onReceiveResponseBody);
+                Promise.resolve(tampered).then((body: Buffer) => {
+                    res.write = (original as any).write;
+                    res.end = (original as any).end;
+
+                    // Per spec of rfc7230, HTTP(1.1/) Message Syntax and Routing.
+                    // The Transfer-Encoding header https://tools.ietf.org/html/rfc7230#section-3.3.1
+                    // Which refers to section 4 Transfer Codecs. Whereby chunked refers to 4.1
+                    // Specific 4.1.2, https://tools.ietf.org/html/rfc7230#section-4.1.2
+                    // "A sender MUST NOT generate a trailer that contains a field necessary
+                    // for message framing (e.g., Transfer-Encoding and Content-Length)"
+                    // And thus do not set the Content-Length when chucked transfer encoded.
+                    if (res.getHeader('transfer-encoding') !== 'chunked') {
+                        res.setHeader('Content-Length', Buffer.byteLength(body));
+                    } else {
+                        res.removeHeader('Content-Length');
+                    }
+                    res.writeHead(res.statusCode, reason);
+                    res.end(body);
+                });
+            }
+        } as typeof res);
+    }
 
     return true;
 }
@@ -325,7 +328,12 @@ function parseURL(req_url: string): URL {
         }
         req_url = (match[4] === '443' ? 'https:' : 'http:') + req_url;
     }
-    const parsed = new URL(req_url);
+    let parsed: URL;
+    try {
+        parsed = new URL(req_url);
+    } catch (err) {
+        return null;
+    }
     if (!parsed.hostname) {
     // "http://:1/" and "http:/notenoughslashes" could end up here.
         return null;
@@ -378,13 +386,6 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         if (!location) {
             res.writeHead(404, 'Invalid Usage', cors_headers);
             res.end('Invalid Usage\nRefer to documenation.');
-            return;
-        }
-
-        if (parseInt(location.port) > 65535) {
-            // Port is higher than 65535
-            res.writeHead(400, 'Invalid port', cors_headers);
-            res.end('Port number too large: ' + location.port);
             return;
         }
 
