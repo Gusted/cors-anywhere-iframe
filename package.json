@@ -24,7 +24,7 @@
   "devDependencies": {
     "@types/http-proxy": "1.17.5",
     "@types/jest": "26.0.20",
-    "@types/node": "14.14.31",
+    "@types/node": "14.14.32",
     "@types/proxy-from-env": "1.0.1",
     "@types/supertest": "2.0.10",
     "@typescript-eslint/eslint-plugin": "4.16.1",
