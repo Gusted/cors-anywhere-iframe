@@ -24,7 +24,6 @@ proxyServer.on('error', (err, _, res) => {
 
 export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: number, proxyOptions?: Partial<ServerOptions>) {
     let server: Server;
-    let handler: (req: IncomingMessage, res: ServerResponse) => void;
 
     let newProxyServer: httpProxy;
     if (proxyOptions) {
@@ -44,7 +43,7 @@ export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: n
             res.end('Not found because of proxy error: ' + err);
         });
     }
-    handler = getHandler(options, newProxyServer || proxyServer);
+    const handler = getHandler(options, newProxyServer || proxyServer);
 
     function start() {
         if (server) {

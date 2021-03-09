@@ -215,7 +215,7 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
                     // may occur after aborting a request does not propagate to res.
                     // https://github.com/http-party/node-http-proxy/blob/master/lib/http-proxy/passes/web-incoming.js#L153
                     proxyReq.removeAllListeners('error');
-                    proxyReq.once('error', () => void 0);
+                    proxyReq.once('error', () => null);
                     (proxyReq as any).abort();
 
                     // Initiate a new proxy request.
