@@ -512,3 +512,94 @@ describe('checkRateLimit', () => {
 
     });
 });
+
+describe('requireHeader', () => {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        mockRequests();
+        cors_anywhere = createProxyServer({
+            requireHeader: ['origin', 'x-requested-with'],
+        }, PORT);
+    });
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('GET /example.com without header', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(400, 'Missing required request header. Must specify one of: origin,x-requested-with', done);
+    });
+
+    it('GET /example.com with X-Requested-With header', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .set('X-Requested-With', '')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(400, 'Missing required request header. Must specify one of: origin,x-requested-with', done);
+    });
+
+    it('GET /example.com with Origin header', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .set('Origin', 'null')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, done);
+    });
+
+    it('GET /example.com without header (requireHeader as string)', (done) => {
+        cors_anywhere.close();
+        cors_anywhere = createProxyServer({
+            requireHeader: ['origin'],
+        }, PORT);
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(400, 'Missing required request header. Must specify one of: origin', done);
+    });
+
+    it('GET /example.com with header (requireHeader as string)', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .set('Origin', 'null')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'Response from example.com', done);
+    });
+
+    it('GET /example.com without header (requireHeader as string, uppercase)', (done) => {
+        cors_anywhere.close();
+        cors_anywhere = createProxyServer({
+            requireHeader: ['ORIGIN'],
+        }, PORT);
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(400, 'Missing required request header. Must specify one of: origin', done);
+    });
+
+    it('GET /example.com with header (requireHeader as string, uppercase)', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .set('Origin', 'null')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'Response from example.com', done);
+    });
+
+    it('GET /example.com (requireHeader is an empty array)', (done) => {
+        cors_anywhere.close();
+        cors_anywhere = createProxyServer({
+            requireHeader: [],
+        }, PORT);
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'Response from example.com', done);
+    });
+});

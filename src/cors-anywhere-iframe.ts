@@ -368,7 +368,9 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase());
     }
 
-    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
+    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => {
+        return corsAnywhere.requireHeader.length === 0 ? true : corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
+    };
     return (req: http.IncomingMessage, res: http.ServerResponse) => {
         req.corsAnywhereRequestState = {
             getProxyForUrl: corsAnywhere.getProxyForUrl,
