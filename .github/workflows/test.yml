@@ -27,7 +27,7 @@ jobs:
           path: |
             node_modules
             */*/node_modules
-          key: ${{ runner.os }}-install-${{ hashFiles('**/package.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-install-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
       

@@ -82,18 +82,6 @@ module.exports = {
                 '@typescript-eslint/no-var-requires': 'off'
             }
         },
-        {
-            files: ['src/**/*.ts'],
-            parserOptions: {
-                ecmaVersion: 2019,
-                project: 'src/tsconfig.json',
-            },
-            rules: {
-                '@typescript-eslint/no-implied-eval': 'error',
-                '@typescript-eslint/switch-exhaustiveness-check': 'error',
-                '@typescript-eslint/promise-function-async': 'error',
-            }
-        },
         // Regexp-Tree doesn't like the insane regexp :(
         {
             files: ['src/regexp-top-level-domain.ts'],
