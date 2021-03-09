@@ -85,12 +85,3 @@ export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: n
         server,
     };
 }
-
-export function createRawProxyServer() {
-    const handler = getHandler({}, proxyServer);
-    const server = createServer((req, res) => {
-        req.url = req.url.slice(1);
-        handler(req, res);
-    });
-    return server;
-}
