@@ -110,8 +110,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
     }
     if (parsedLocation) {
       if ((statusCode === 301 || statusCode === 302 || statusCode === 303) && (requestState.redirectCount = requestState.redirectCount + 1 || 1, requestState.redirectCount <= requestState.maxRedirects))
-        return res.setHeader("X-CORS-Redirect-" + requestState.redirectCount, statusCode + " " + locationHeader), req.method = "GET", req.headers["content-length"] = "0", delete req.headers["content-type"], requestState.location = parsedLocation, req.url = parsedLocation.href, req.removeAllListeners(), proxyReq.removeAllListeners("error"), proxyReq.once("error", () => {
-        }), proxyReq.abort(), proxyRequest(req, res, proxy), !1;
+        return res.setHeader("X-CORS-Redirect-" + requestState.redirectCount, statusCode + " " + locationHeader), req.method = "GET", req.headers["content-length"] = "0", delete req.headers["content-type"], requestState.location = parsedLocation, req.url = parsedLocation.href, req.removeAllListeners(), proxyReq.removeAllListeners("error"), proxyReq.once("error", () => null), proxyReq.abort(), proxyRequest(req, res, proxy), !1;
       proxyRes.headers.location = requestState.proxyBaseUrl + "/" + locationHeader;
     }
   }
