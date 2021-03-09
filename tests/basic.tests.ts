@@ -628,7 +628,6 @@ describe('removeHeaders', () => {
 });
 
 describe('setHeaders', () => {
-
     let cors_anywhere: {
         close: () => void;
         url: string;
@@ -665,5 +664,229 @@ describe('setHeaders', () => {
                 host: 'example.com',
                 'x-powered-by': 'CORS Anywhere',
             }, done);
+    });
+});
+
+describe('setHeaders + removeHeaders', () => {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        mockRequests();
+        cors_anywhere = createProxyServer({
+            // setHeaders takes precedence over removeHeaders
+            removeHeaders: ['x-powered-by'],
+            setHeaders: {'x-powered-by': 'CORS Anywhere'},
+        }, PORT);
+    });
+
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('GET /example.com', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/echoheaders')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectJSON({
+                host: 'example.com',
+                'x-powered-by': 'CORS Anywhere',
+            }, done);
+    });
+
+    it('GET /example.com should replace header', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/echoheaders')
+            .set('x-powered-by', 'should be replaced')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectJSON({
+                host: 'example.com',
+                'x-powered-by': 'CORS Anywhere',
+            }, done);
+    });
+});
+
+describe('Access-Control-Max-Age set', function () {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        mockRequests();
+        cors_anywhere = createProxyServer({
+            corsMaxAge: 600,
+        }, PORT);
+    });
+
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('OPTIONS /', (done) => {
+        request(cors_anywhere.server)
+            .options('/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect('Access-Control-Max-Age', '600')
+            .expect(200, '', done);
+    });
+
+    it('OPTIONS /example.com', (done) => {
+        request(cors_anywhere.server)
+            .options('/example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect('Access-Control-Max-Age', '600')
+            .expect(200, '', done);
+    });
+
+    it('GET / no Access-Control-Max-Age on GET', (done) => {
+        request(cors_anywhere.server)
+            .get('/')
+            .type('text/plain')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectNoHeader('Access-Control-Max-Age')
+            .expect(404, 'Invalid Usage\nRefer to documenation.', done);
+    });
+
+    it('GET /example.com no Access-Control-Max-Age on GET', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectNoHeader('Access-Control-Max-Age')
+            .expect(200, 'Response from example.com', done);
+    });
+});
+
+describe('Access-Control-Max-Age not set', () => {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        mockRequests();
+        cors_anywhere = createProxyServer({}, PORT);
+    });
+
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('OPTIONS / corsMaxAge disabled', (done) => {
+        request(cors_anywhere.server)
+            .options('/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectNoHeader('Access-Control-Max-Age')
+            .expect(200, '', done);
+    });
+
+    it('OPTIONS /example.com corsMaxAge disabled', (done) => {
+        request(cors_anywhere.server)
+            .options('/example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectNoHeader('Access-Control-Max-Age')
+            .expect(200, '', done);
+    });
+
+    it('GET /', (done) => {
+        request(cors_anywhere.server)
+            .get('/')
+            .type('text/plain')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectNoHeader('Access-Control-Max-Age')
+            .expect(404, 'Invalid Usage\nRefer to documenation.', done);
+    });
+
+    it('GET /example.com', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectNoHeader('Access-Control-Max-Age')
+            .expect(200, 'Response from example.com', done);
+    });
+});
+
+describe('httpProxyOptions.getProxyForUrl', () => {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    let proxy_server: Server;
+    const proxy_port = 4044;
+    const proxy_url = `http://0.0.0.0:${proxy_port}`;
+    beforeAll(() => {
+        mockRequests();
+        // Using a real server instead of a mock because Nock doesn't can't mock proxies.
+        proxy_server = createServer((req, res) => {
+            debugger;
+            res.end(req.method + ' Host=' + req.headers.host);
+        });
+        proxy_server.listen(4044, '0.0.0.0');
+
+        cors_anywhere = createProxyServer({}, PORT, {xfwd: true});
+    });
+    afterEach(() => {
+        // Assuming that they were not set before.
+        delete process.env.https_proxy;
+        delete process.env.http_proxy;
+        delete process.env.no_proxy;
+    });
+    afterAll(() => {
+        proxy_server.close();
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('http_proxy should be respected for matching domains', (done) => {
+        process.env.http_proxy = proxy_url;
+
+        request(cors_anywhere.server)
+            .get('/http://example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'GET Host=example.com', done);
+    });
+
+    it('http_proxy should be ignored for http URLs', (done) => {
+        process.env.http_proxy = proxy_url;
+        request(cors_anywhere.server)
+            .get('/https://example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'Response from https://example.com', done);
+    });
+
+    it('https_proxy should be respected for matching domains', (done) => {
+        process.env.https_proxy = proxy_url;
+
+        request(cors_anywhere.server)
+            .get('/https://example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'GET Host=example.com', done);
+    });
+
+    it('https_proxy should be ignored for http URLs', (done) => {
+        process.env.https_proxy = proxy_url;
+        request(cors_anywhere.server)
+            .get('/http://example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'Response from example.com', done);
+    });
+
+    it('https_proxy + no_proxy should not intercept requests in no_proxy', (done) => {
+        process.env.https_proxy = proxy_url;
+        process.env.no_proxy = 'example.com:443';
+        request(cors_anywhere.server)
+            .get('/https://example.com')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, 'Response from https://example.com', done);
     });
 });

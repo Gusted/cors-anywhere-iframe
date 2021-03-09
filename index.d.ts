@@ -53,10 +53,10 @@ interface CorsAnywhereOptions {
     setHeaders: {[header: string]: string};
 
     /**
-     * When specifief, an Access-Control-Max-Age header with this value (in seconds) will be added.
+     * When specified, an Access-Control-Max-Age header with this value (in seconds) will be added.
      * Default: '0'
      */
-    corsMaxAge: string;
+    corsMaxAge: number;
 
     /**
      * Callback that is called when the Response body has been fully received.
