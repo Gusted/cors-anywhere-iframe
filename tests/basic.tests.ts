@@ -34,7 +34,6 @@ declare module 'supertest' {
 const PORT = 3000;
 
 describe('Basic functionality', () => {
-    let server: Server;
     let cors_anywhere: {
         close: () => void;
         url: string;
@@ -50,12 +49,8 @@ describe('Basic functionality', () => {
         disableMocking();
     });
 
-    it('Declare server variable', () => {
-        server = cors_anywhere.server;
-    });
-
     it('GET /', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/')
             .type('text/plain')
             .expect('Access-Control-Allow-Origin', '*')
@@ -63,49 +58,49 @@ describe('Basic functionality', () => {
     });
 
     it('GET /example.com:65536', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com:65536')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(404, 'Invalid Usage\nRefer to documenation.', done);
     });
 
     it('GET /favicon.ico', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/favicon.ico')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(404, 'Invalid host: favicon.ico', done);
     });
 
     it('GET /robots.txt', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/robots.txt')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(404, 'Invalid host: robots.txt', done);
     });
 
     it('GET /http://robots.flowers should be proxied', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/http://robots.flowers')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, 'this is http://robots.flowers', done);
     });
 
     it('GET /example.com', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, 'Response from example.com', done);
     });
 
     it('GET /example.com:80', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com:80')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, 'Response from example.com', done);
     });
 
     it('GET /example.com:443', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com:443')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, 'Response from https://example.com', done);
@@ -113,7 +108,7 @@ describe('Basic functionality', () => {
 
     it('GET /http:///', (done) => {
     // 'http://:1234' is an invalid URL.
-        request(server)
+        request(cors_anywhere.server)
             .get('/http:///')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(404, 'Invalid Usage\nRefer to documenation.', done);
@@ -121,7 +116,7 @@ describe('Basic functionality', () => {
 
     it('GET /http:/notenoughslashes', (done) => {
     // 'http:/notenoughslashes' is an invalid URL.
-        request(server)
+        request(cors_anywhere.server)
             .get('/http:/notenoughslashes')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(404, 'Invalid Usage\nRefer to documenation.', done);
@@ -130,7 +125,7 @@ describe('Basic functionality', () => {
 
     it('GET ///example.com', (done) => {
     // API base URL (with trailing slash) + '//example.com'
-        request(server)
+        request(cors_anywhere.server)
             .get('///example.com')
             .expect('Access-Control-Allow-Origin', '*')
             .expect('x-request-url', 'http://example.com/')
@@ -138,7 +133,7 @@ describe('Basic functionality', () => {
     });
 
     it('GET /http://example.com', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/http://example.com')
             .expect('Access-Control-Allow-Origin', '*')
             .expect('x-request-url', 'http://example.com/')
@@ -146,7 +141,7 @@ describe('Basic functionality', () => {
     });
 
     it('POST plain text', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .post('/example.com/echopost')
             .send('{"this is a request body & should not be mangled":1.00}')
             .expect('Access-Control-Allow-Origin', '*')
@@ -154,7 +149,7 @@ describe('Basic functionality', () => {
     });
 
     it('POST file', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .post('/example.com/echopost')
             .attach('file', path.join(__dirname, 'dummy.txt'))
             .expect('Access-Control-Allow-Origin', '*')
@@ -164,7 +159,7 @@ describe('Basic functionality', () => {
     it('HEAD with redirect should be followed', (done) => {
     // Redirects are automatically followed, because redirects are to be
     // followed automatically per specification regardless of the HTTP verb.
-        request(server)
+        request(cors_anywhere.server)
             .head('/example.com/redirect')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -178,7 +173,7 @@ describe('Basic functionality', () => {
     });
 
     it('GET with redirect should be followed', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/redirect')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -192,7 +187,7 @@ describe('Basic functionality', () => {
     });
 
     it('GET with redirect loop should interrupt', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/redirectloop')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -207,7 +202,7 @@ describe('Basic functionality', () => {
     });
 
     it('POST with 302 redirect should be followed', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .post('/example.com/redirectpost')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -220,7 +215,7 @@ describe('Basic functionality', () => {
 
     it('GET with 302 redirect without Location header should not be followed', (done) => {
     // There is nothing to follow, so let the browser decide what to do with it.
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/redirectwithoutlocation')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -232,7 +227,7 @@ describe('Basic functionality', () => {
 
     it('GET with 302 redirect to an invalid Location should not be followed', (done) => {
     // There is nothing to follow, so let the browser decide what to do with it.
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/redirectinvalidlocation')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -246,7 +241,7 @@ describe('Basic functionality', () => {
     it('POST with 307 redirect should not be handled', (done) => {
     // Because of implementation difficulties (having to keep the request body
     // in memory), handling HTTP 307/308 redirects is deferred to the requestor.
-        request(server)
+        request(cors_anywhere.server)
             .post('/example.com/redirect307')
             .redirects(0)
             .expect('Access-Control-Allow-Origin', '*')
@@ -258,14 +253,14 @@ describe('Basic functionality', () => {
     });
 
     it('OPTIONS /', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .options('/')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, '', done);
     });
 
     it('OPTIONS / with Access-Control-Request-Method / -Headers', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .options('/')
             .set('Access-Control-Request-Method', 'DELETE')
             .set('Access-Control-Request-Headers', 'X-Tralala')
@@ -278,14 +273,14 @@ describe('Basic functionality', () => {
     it('OPTIONS //bogus', (done) => {
     // The preflight request always succeeds, regardless of whether the request
     // is valid.
-        request(server)
+        request(cors_anywhere.server)
             .options('//bogus')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, '', done);
     });
 
     it('X-Forwarded-* headers', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/echoheaders')
             .set('test-include-xfwd', '')
             .expect('Access-Control-Allow-Origin', '*')
@@ -297,7 +292,7 @@ describe('Basic functionality', () => {
     });
 
     it('X-Forwarded-* headers (non-standard port)', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com:1337/echoheaders')
             .set('test-include-xfwd', '')
             .expect('Access-Control-Allow-Origin', '*')
@@ -309,7 +304,7 @@ describe('Basic functionality', () => {
     });
 
     it('X-Forwarded-* headers (https)', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/https://example.com/echoheaders')
             .set('test-include-xfwd', '')
             .expect('Access-Control-Allow-Origin', '*')
@@ -323,7 +318,6 @@ describe('Basic functionality', () => {
 });
 
 describe('Proxy errors', () => {
-    let server: Server;
     let cors_anywhere: {
         close: () => void;
         url: string;
@@ -337,10 +331,6 @@ describe('Proxy errors', () => {
     afterAll(() => {
         cors_anywhere.close();
         disableMocking();
-    });
-
-    it('Declare server variable', () => {
-        server = cors_anywhere.server;
     });
 
     let bad_http_server: Server;
@@ -360,7 +350,7 @@ describe('Proxy errors', () => {
     });
 
     it('Proxy error', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/proxyerror')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(418, 'Not found because of proxy error: Error: throw node', done);
@@ -368,7 +358,7 @@ describe('Proxy errors', () => {
 
     it('Content-Length mismatch', (done) => {
         const errorMessage = 'Error: Parse Error: Invalid character in Content-Length';
-        request(server)
+        request(cors_anywhere.server)
             .get('/' + bad_http_server_url)
             .expect('Access-Control-Allow-Origin', '*')
             .expect(418, 'Not found because of proxy error: ' + errorMessage, done);
@@ -377,7 +367,6 @@ describe('Proxy errors', () => {
 
 
 describe('originBlacklist', () => {
-    let server: Server;
     let cors_anywhere: {
         close: () => void;
         url: string;
@@ -395,12 +384,8 @@ describe('originBlacklist', () => {
         disableMocking();
     });
 
-    it('Declare server variable', () => {
-        server = cors_anywhere.server;
-    });
-
     it('GET /example.com with denied origin', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/')
             .set('Origin', 'http://denied.origin.test')
             .expect('Access-Control-Allow-Origin', '*')
@@ -408,7 +393,7 @@ describe('originBlacklist', () => {
     });
 
     it('GET /example.com without denied origin', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/')
             .set('Origin', 'https://denied.origin.test') // Note: different scheme!
             .expect('Access-Control-Allow-Origin', '*')
@@ -416,7 +401,7 @@ describe('originBlacklist', () => {
     });
 
     it('GET /example.com without origin', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, done);
@@ -424,7 +409,6 @@ describe('originBlacklist', () => {
 });
 
 describe('originWhitelist', () => {
-    let server: Server;
     let cors_anywhere: {
         close: () => void;
         url: string;
@@ -442,12 +426,8 @@ describe('originWhitelist', () => {
         disableMocking();
     });
 
-    it('Declare server variable', () => {
-        server = cors_anywhere.server;
-    });
-
     it('GET /example.com with permitted origin', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/')
             .set('Origin', 'https://permitted.origin.test')
             .expect('Access-Control-Allow-Origin', '*')
@@ -455,7 +435,7 @@ describe('originWhitelist', () => {
     });
 
     it('GET /example.com without permitted origin', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/')
             .set('Origin', 'http://permitted.origin.test') // Note: different scheme!
             .expect('Access-Control-Allow-Origin', '*')
@@ -463,7 +443,7 @@ describe('originWhitelist', () => {
     });
 
     it('GET /example.com without origin', (done) => {
-        request(server)
+        request(cors_anywhere.server)
             .get('/example.com/')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(403, done);
@@ -601,5 +581,89 @@ describe('requireHeader', () => {
             .get('/example.com/')
             .expect('Access-Control-Allow-Origin', '*')
             .expect(200, 'Response from example.com', done);
+    });
+});
+
+describe('removeHeaders', () => {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        mockRequests();
+        cors_anywhere = createProxyServer({
+            removeHeaders: ['cookie', 'cookie2'],
+        }, PORT);
+    });
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('GET /example.com with request cookie', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/echoheaders')
+            .set('cookie', 'a')
+            .set('cookie2', 'b')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectJSON({
+                host: 'example.com',
+            }, done);
+    });
+
+    it('GET /example.com with unknown header', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/echoheaders')
+            .set('cookie', 'a')
+            .set('cookie2', 'b')
+            .set('cookie3', 'c')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectJSON({
+                host: 'example.com',
+                cookie3: 'c',
+            }, done);
+    });
+});
+
+describe('setHeaders', () => {
+
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        mockRequests();
+        cors_anywhere = createProxyServer({
+            setHeaders: {'x-powered-by': 'CORS Anywhere'},
+        }, PORT);
+    });
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('GET /example.com', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/echoheaders')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectJSON({
+                host: 'example.com',
+                'x-powered-by': 'CORS Anywhere',
+            }, done);
+    });
+
+    it('GET /example.com should replace header', (done) => {
+        request(cors_anywhere.server)
+            .get('/example.com/echoheaders')
+            .set('x-powered-by', 'should be replaced')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expectJSON({
+                host: 'example.com',
+                'x-powered-by': 'CORS Anywhere',
+            }, done);
     });
 });
