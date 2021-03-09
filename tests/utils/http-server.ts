@@ -34,7 +34,7 @@ export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: n
         server.on('error', (err) => {
             console.log(err);
         });
-        
+
     }
 
     function close() {

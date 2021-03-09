@@ -1,11 +1,11 @@
 import {createProxyServer} from './utils/http-server';
 import request from 'supertest';
 import path from 'path';
-import net from 'net';
 import type {Server} from 'http';
 import {createServer} from 'http';
 import mockRequests, {disableMocking} from './utils/mock-requests';
 import assert from 'assert';
+import { enableNetConnect } from 'nock/types';
 
 
 declare module 'supertest' {
@@ -324,7 +324,7 @@ describe('Basic functionality', () => {
 
 });
 
-describe('Proxy errors', function () {
+describe('Proxy errors', () => {
     let server: Server;
     let cors_anywhere: {
         close: () => void;
@@ -374,5 +374,143 @@ describe('Proxy errors', function () {
             .get('/' + bad_http_server_url)
             .expect('Access-Control-Allow-Origin', '*')
             .expect(418, 'Not found because of proxy error: ' + errorMessage, done);
+    });
+});
+
+
+describe('originBlacklist', function () {
+    let server: Server;
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        cors_anywhere = createProxyServer({
+            originBlacklist: ['http://denied.origin.test']
+        }, PORT);
+        mockRequests();
+    });
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('Declare server variable', () => {
+        server = cors_anywhere.server;
+    });
+
+    it('GET /example.com with denied origin', (done) => {
+        request(server)
+            .get('/example.com/')
+            .set('Origin', 'http://denied.origin.test')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(403, done);
+    });
+
+    it('GET /example.com without denied origin', (done) => {
+        request(server)
+            .get('/example.com/')
+            .set('Origin', 'https://denied.origin.test') // Note: different scheme!
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, done);
+    });
+
+    it('GET /example.com without origin', (done) => {
+        request(server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, done);
+    });
+});
+
+describe('originWhitelist', () => {
+    let server: Server;
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+
+    beforeAll(() => {
+        cors_anywhere = createProxyServer({
+            originWhitelist: ['https://permitted.origin.test']
+        }, PORT);
+        mockRequests();
+    });
+    afterAll(() => {
+        cors_anywhere.close();
+        disableMocking();
+    });
+
+    it('Declare server variable', () => {
+        server = cors_anywhere.server;
+    });
+
+    it('GET /example.com with permitted origin', (done) => {
+        request(server)
+            .get('/example.com/')
+            .set('Origin', 'https://permitted.origin.test')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, done);
+    });
+
+    it('GET /example.com without permitted origin', (done) => {
+        request(server)
+            .get('/example.com/')
+            .set('Origin', 'http://permitted.origin.test') // Note: different scheme!
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(403, done);
+    });
+
+    it('GET /example.com without origin', (done) => {
+        request(server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(403, done);
+    });
+});
+
+describe('checkRateLimit', () => {
+    let cors_anywhere: {
+        close: () => void;
+        url: string;
+        server: Server;
+    };
+    beforeAll(() => {
+        mockRequests();
+    })
+    afterAll(() => {
+        disableMocking();
+    });
+
+    afterEach(() => cors_anywhere.server.close());
+
+    it('GET /example.com without rate-limit', (done) => {
+        cors_anywhere = createProxyServer({
+            checkRateLimit: () => null,
+        }, PORT);
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(200, done);
+    });
+
+    it('GET /example.com with rate-limit', (done) => {
+        cors_anywhere = createProxyServer({
+            checkRateLimit: (origin) => {
+                // Non-empty value. Let's return the origin parameter so that we also verify that the
+                // the parameter is really the origin.
+                return ('[' + origin + ']' as any);
+            },
+        }, PORT);
+
+        request(cors_anywhere.server)
+            .get('/example.com/')
+            .set('Origin', 'http://example.net:1234')
+            .expect('Access-Control-Allow-Origin', '*')
+            .expect(429, 'The origin "http://example.net:1234" has sent too many requests.\n[http://example.net:1234]', done);
+
     });
 });
