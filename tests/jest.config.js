@@ -1,13 +1,7 @@
 module.exports = {
     verbose: true,
-    testEnvironment: 'node',
-    transform: {
-        '^.+\\.ts$': './tests/utils/esbuild-transform.js'
-    },
-    testRegex: 'tests/.*\\.tests\\.ts$',
-    moduleFileExtensions: [
-        'ts',
-        'js'
+    projects: [
+        'tests/basic/jest.config.js',
+        'tests/rate-limit/jest.config.js',
     ],
-    rootDir: '../',
 };

@@ -9,7 +9,7 @@ var __export = (target, all) => {
     for (let key of __getOwnPropNames(module2))
       !__hasOwnProp.call(target, key) && key !== "default" && __defProp(target, key, {get: () => module2[key], enumerable: !(desc = __getOwnPropDesc(module2, key)) || desc.enumerable});
   return target;
-}, __toModule = (module2) => module2 && module2.__esModule ? module2 : __exportStar(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", {value: module2, enumerable: !0})), module2);
+}, __toModule = (module2) => __exportStar(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? {get: () => module2.default, enumerable: !0} : {value: module2, enumerable: !0})), module2);
 
 // src/cors-anywhere-iframe.ts
 __markAsModule(exports);
@@ -24,48 +24,47 @@ var regexp_top_level_domain_default = /\.(?:AAA|AARP|ABARTH|ABB|ABBOTT|ABBVIE|AB
 
 // src/rate-limit.ts
 function createRateLimitChecker(options) {
-  let {maxRequestsPerPeriod, periodInMinutes, sites} = options;
   options = {maxRequestsPerPeriod: 10, periodInMinutes: 1, sites: [], ...options};
-  let hostPatternRegExps = [];
-  sites && sites.forEach((host) => {
-    host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*"), hostPatternRegExps.push(new RegExp(`^${host}(?![A-Za-z0-9])`, "i"));
+  let {sites, periodInMinutes, maxRequestsPerPeriod} = options, hostPatternRegExps = [];
+  sites && sites.length > 0 && sites.forEach((host) => {
+    typeof host == "string" ? (host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*"), hostPatternRegExps.push(new RegExp(`^${host}(?![A-Za-z0-9])`, "i"))) : hostPatternRegExps.push(new RegExp(`^${host.source}(?![A-Za-z0-9.])`, "i"));
   });
   let accessedHosts = new Map();
   setInterval(() => {
     accessedHosts.clear();
   }, periodInMinutes * 6e4);
-  let rateLimitMessage = `The number of requests is limited to ${maxRequestsPerPeriod}
-    ${periodInMinutes === 1 ? " per minute" : " per " + periodInMinutes + " minutes"}. 
-    Please self-host CORS Anywhere IFrame if you need more quota.`;
+  let rateLimitMessage = `The number of requests is limited to ${maxRequestsPerPeriod}${periodInMinutes === 1 ? " per minute" : " per " + periodInMinutes + " minutes"}. Please self-host CORS Anywhere IFrame if you need more quota.`;
   return function(origin) {
     let host = origin.replace(/^[\w\-]+:\/\//i, "");
-    if (!(hostPatternRegExps && hostPatternRegExps.some((hostPattern) => hostPattern.test(host))))
-      if (!accessedHosts.has(host))
-        accessedHosts.set(host, 1);
-      else {
+    if (!(hostPatternRegExps && hostPatternRegExps.some((hostPattern) => hostPattern.test(host)))) {
+      if (accessedHosts.has(host)) {
         let count = accessedHosts.get(host) + 1;
         if (count > maxRequestsPerPeriod)
           return rateLimitMessage;
         accessedHosts.set(host, count);
-      }
+      } else if (accessedHosts.set(host, 1), maxRequestsPerPeriod < 1)
+        return rateLimitMessage;
+    }
   };
 }
 
 // src/cors-anywhere-iframe.ts
 var import_proxy_from_env = __toModule(require("proxy-from-env")), import_url = __toModule(require("url")), import_zlib = __toModule(require("zlib")), import_util = __toModule(require("util"));
 function isValidHostName(hostname) {
-  return regexp_top_level_domain_default.test(hostname) || import_net.isIPv4(hostname) || import_net.isIPv6(hostname);
+  return regexp_top_level_domain_default.test(hostname) || (0, import_net.isIPv4)(hostname) || (0, import_net.isIPv6)(hostname);
 }
 function withCORS(headers, request) {
   if (request.method === "OPTIONS") {
     let corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
-    corsMaxAge && (headers["access-control-max-age"] = corsMaxAge);
+    corsMaxAge && (headers["access-control-max-age"] = String(corsMaxAge));
   } else
     headers["access-control-expose-headers"] = Object.keys(headers).filter((header) => header.match(/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/) ? !1 : header).join(",");
   return headers["access-control-allow-origin"] = "*", request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers;
 }
 function proxyRequest(req, res, proxy) {
-  let location = req.corsAnywhereRequestState.location, proxyOptions = {
+  let location = req.corsAnywhereRequestState.location;
+  req.url = location.href;
+  let proxyOptions = {
     changeOrigin: !1,
     prependPath: !1,
     target: location,
@@ -102,7 +101,14 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
   let requestState = req.corsAnywhereRequestState, statusCode = proxyRes.statusCode;
   if (requestState.redirectCount || res.setHeader("x-request-url", requestState.location.href), statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308) {
     let locationHeader = proxyRes.headers.location, parsedLocation;
-    if (locationHeader && (locationHeader = new import_url.URL(locationHeader, requestState.location.href).href, parsedLocation = parseURL(locationHeader)), parsedLocation) {
+    if (locationHeader) {
+      try {
+        locationHeader = new import_url.URL(locationHeader, requestState.location.href).href;
+      } catch (err) {
+      }
+      parsedLocation = parseURL(locationHeader);
+    }
+    if (parsedLocation) {
       if ((statusCode === 301 || statusCode === 302 || statusCode === 303) && (requestState.redirectCount = requestState.redirectCount + 1 || 1, requestState.redirectCount <= requestState.maxRedirects))
         return res.setHeader("X-CORS-Redirect-" + requestState.redirectCount, statusCode + " " + locationHeader), req.method = "GET", req.headers["content-length"] = "0", delete req.headers["content-type"], requestState.location = parsedLocation, req.url = parsedLocation.href, req.removeAllListeners(), proxyReq.removeAllListeners("error"), proxyReq.once("error", () => {
         }), proxyReq.abort(), proxyRequest(req, res, proxy), !1;
@@ -110,24 +116,27 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
     }
   }
   delete proxyRes.headers["x-frame-options"], delete proxyRes.headers["x-xss-protection"], delete proxyRes.headers["x-content-type-options"], proxyRes.headers["content-security-policy"] && (proxyRes.headers["content-security-policy"] = proxyRes.headers["content-security-policy"].replace(/frame-ancestors?.+?(?=;|$).?/g, "").replace(/base-uri.+?(?=;)./g, `base-uri ${requestState.location.origin};`).replace(/'self'/g, requestState.location.origin).replace(/script-src([^;]*);/i, `script-src$1 ${requestState.proxyBaseUrl} inline;`)), proxyRes.headers["x-final-url"] = requestState.location.href, withCORS(proxyRes.headers, req);
-  let buffers = [], reason, headersSet = !1, original = patch(res, {
-    writeHead(statusCode2, reasonPhrase, headers) {
-      typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
-      for (let name in headers)
-        res.setHeader(name, headers[name]);
-      headersSet = !0, res.writeHead = original.writeHead;
-    },
-    write(chunk) {
-      !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
-    },
-    end(chunk) {
-      !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
-      let tampered = modifyBody(Buffer.concat(buffers), res.getHeader("content-encoding"), requestState.location.origin, requestState.onReceiveResponseBody);
-      Promise.resolve(tampered).then((body) => {
-        res.write = original.write, res.end = original.end, res.getHeader("transfer-encoding") !== "chunked" ? res.setHeader("Content-Length", Buffer.byteLength(body)) : res.removeHeader("Content-Length"), res.writeHead(res.statusCode, reason), res.end(body);
-      });
-    }
-  });
+  let buffers = [], reason, headersSet = !1;
+  if (requestState.onReceiveResponseBody) {
+    let original = patch(res, {
+      writeHead(statusCode2, reasonPhrase, headers) {
+        typeof reasonPhrase == "object" && (headers = reasonPhrase, reasonPhrase = void 0), res.statusCode = statusCode2, reason = reasonPhrase;
+        for (let name in headers)
+          res.setHeader(name, headers[name]);
+        headersSet = !0, res.writeHead = original.writeHead;
+      },
+      write(chunk) {
+        !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
+      },
+      end(chunk) {
+        !headersSet && res.writeHead(res.statusCode), chunk && buffers.push(Buffer.from(chunk));
+        let tampered = modifyBody(Buffer.concat(buffers), res.getHeader("content-encoding"), requestState.location.origin, requestState.onReceiveResponseBody);
+        Promise.resolve(tampered).then((body) => {
+          res.write = original.write, res.end = original.end, res.getHeader("transfer-encoding") !== "chunked" ? res.setHeader("Content-Length", Buffer.byteLength(body)) : res.removeHeader("Content-Length"), res.writeHead(res.statusCode, reason), res.end(body);
+        });
+      }
+    });
+  }
   return !0;
 }
 function patch(obj, properties) {
@@ -145,7 +154,12 @@ function parseURL(req_url) {
       return null;
     req_url.lastIndexOf("//", 0) === -1 && (req_url = "//" + req_url), req_url = (match[4] === "443" ? "https:" : "http:") + req_url;
   }
-  let parsed = new import_url.URL(req_url);
+  let parsed;
+  try {
+    parsed = new import_url.URL(req_url);
+  } catch (err) {
+    return null;
+  }
   return parsed.hostname ? parsed : null;
 }
 function getHandler(options, proxy) {
@@ -158,11 +172,11 @@ function getHandler(options, proxy) {
     requireHeader: null,
     removeHeaders: [],
     setHeaders: {},
-    corsMaxAge: "0",
+    corsMaxAge: 0,
     onReceiveResponseBody: null
   };
   corsAnywhere = {...corsAnywhere, ...options}, corsAnywhere.requireHeader && (corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase()));
-  let hasRequiredHeaders = (headers) => corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
+  let hasRequiredHeaders = (headers) => corsAnywhere.requireHeader.length === 0 ? !0 : corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
   return (req, res) => {
     req.corsAnywhereRequestState = {
       getProxyForUrl: corsAnywhere.getProxyForUrl,
@@ -180,10 +194,6 @@ function getHandler(options, proxy) {
     if (!location) {
       res.writeHead(404, "Invalid Usage", cors_headers), res.end(`Invalid Usage
 Refer to documenation.`);
-      return;
-    }
-    if (parseInt(location.port) > 65535) {
-      res.writeHead(400, "Invalid port", cors_headers), res.end("Port number too large: " + location.port);
       return;
     }
     if (!/^\/https?:/.test(req.url) && !isValidHostName(location.hostname)) {

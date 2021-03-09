@@ -1,4 +1,4 @@
-import createRateLimitChecker from '../src/rate-limit';
+import createRateLimitChecker from '../../src/rate-limit';
 import fakeTimer from '@sinonjs/fake-timers';
 import assert from 'assert';
 

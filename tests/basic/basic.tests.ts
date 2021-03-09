@@ -1,9 +1,9 @@
-import {createProxyServer} from './utils/http-server';
+import {createProxyServer} from '../utils/http-server';
 import request from 'supertest';
 import path from 'path';
 import type {Server} from 'http';
 import {createServer} from 'http';
-import mockRequests, {disableMocking} from './utils/mock-requests';
+import mockRequests, {disableMocking} from '../utils/mock-requests';
 import assert from 'assert';
 
 declare module 'supertest' {
