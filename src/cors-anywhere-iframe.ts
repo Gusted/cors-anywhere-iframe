@@ -21,8 +21,8 @@ declare module 'http' {
         proxyBaseUrl: string;
         maxRedirects: number;
         redirectCount: number;
-        corsMaxAge: string;
-        onReceiveResponseBody: (body: string) => string;
+        corsMaxAge: number;
+        onReceiveResponseBody: (body: string, origin: string) => string;
     }
     interface IncomingMessage {
         corsAnywhereRequestState: Partial<corsAnywhereRequestStateOptions>;
@@ -38,8 +38,8 @@ interface CorsAnywhereOptions {
     requireHeader: string[];
     removeHeaders: string[];
     setHeaders: headerType;
-    corsMaxAge: string;
-    onReceiveResponseBody: (body: string) => string;
+    corsMaxAge: number;
+    onReceiveResponseBody: (body: string, origin: string) => string;
 }
 
 /**
@@ -60,7 +60,7 @@ function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessa
     if (request.method === 'OPTIONS') {
         const corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
         if (corsMaxAge) {
-            headers['access-control-max-age'] = corsMaxAge;
+            headers['access-control-max-age'] = String(corsMaxAge);
         }
     } else {
         headers['access-control-expose-headers'] = Object.keys(headers).filter((header) =>
@@ -128,6 +128,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
 
     const proxyThroughUrl = req.corsAnywhereRequestState.getProxyForUrl(location.href);
     if (proxyThroughUrl) {
+        debugger;
         proxyOptions.target = proxyThroughUrl;
         // If a proxy URL was set, req.url must be an absolute URL. Then the request will not be sent
         // directly to the proxied URL, but through another proxy.
@@ -184,7 +185,11 @@ function onProxyResponse(proxy: EventEmitter, proxyReq: OutgoingMessage, proxyRe
         let locationHeader = proxyRes.headers.location;
         let parsedLocation: URL;
         if (locationHeader) {
-            locationHeader = new URL(locationHeader, requestState.location.href).href;
+            try {
+                locationHeader = new URL(locationHeader, requestState.location.href).href;
+            } catch (err) {
+                void 0;
+            }
             parsedLocation = parseURL(locationHeader);
         }
         if (parsedLocation) {
@@ -353,7 +358,7 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         requireHeader: null,
         removeHeaders: [],
         setHeaders: {},
-        corsMaxAge: '0',
+        corsMaxAge: 0,
         onReceiveResponseBody: null,
     };
 
@@ -364,7 +369,9 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         corsAnywhere.requireHeader = corsAnywhere.requireHeader.map((headerName) => headerName.toLowerCase());
     }
 
-    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
+    const hasRequiredHeaders = (headers: http.IncomingHttpHeaders) => {
+        return corsAnywhere.requireHeader.length === 0 ? true : corsAnywhere.requireHeader.some((headerName) => headers[headerName]);
+    };
     return (req: http.IncomingMessage, res: http.ServerResponse) => {
         req.corsAnywhereRequestState = {
             getProxyForUrl: corsAnywhere.getProxyForUrl,

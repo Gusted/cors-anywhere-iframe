@@ -10,7 +10,7 @@ module.exports = {
             loader: 'ts',
             format: 'cjs',
             target: 'es2019',
-            sourcemap: 'inline',
+            sourcemap: 'external',
             banner: '"use strict";',
         });
         return {

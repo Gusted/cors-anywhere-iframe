@@ -1,4 +1,5 @@
 import {ServerResponse, IncomingMessage} from "http";
+import type {Url} from 'url';
 import httpProxy from "http-proxy";
 
 interface CorsAnywhereOptions {
@@ -6,7 +7,7 @@ interface CorsAnywhereOptions {
      * Function that specifies the proxy to use.
      * Default: npm package proxy-from-env
      */
-    getProxyForUrl: (url: string | URL) => string;
+    getProxyForUrl: (url: string | Url) => string;
 
     /**
      * Maximum number of redirects to be followed.
@@ -52,10 +53,10 @@ interface CorsAnywhereOptions {
     setHeaders: {[header: string]: string};
 
     /**
-     * When specifief, an Access-Control-Max-Age header with this value (in seconds) will be added.
+     * When specified, an Access-Control-Max-Age header with this value (in seconds) will be added.
      * Default: '0'
      */
-    corsMaxAge: string;
+    corsMaxAge: number;
 
     /**
      * Callback that is called when the Response body has been fully received.

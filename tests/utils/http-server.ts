@@ -1,8 +1,9 @@
-import type {Server} from 'http';
 import {createServer} from 'http';
 import {getHandler} from '../../src/cors-anywhere-iframe';
 import httpProxy from 'http-proxy';
-import type {corsAnywhereRequestStateOptions} from 'node:http';
+import type {ServerOptions} from 'http-proxy';
+import type {CorsAnywhereOptions} from '../../index';
+import type {IncomingMessage, ServerResponse, Server} from 'http';
 
 const proxyServer = httpProxy.createServer();
 proxyServer.on('error', (err, _, res) => {
@@ -14,16 +15,47 @@ proxyServer.on('error', (err, _, res) => {
     }
     const headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res.getHeaders() || {});
     headerNames.forEach((name) => res.removeHeader(name));
-    res.writeHead(404, {'Access-Control-Allow-Origin': '*'});
+    // Use the unfamous teapot HTTP code.
+    // To determine the error type inside the test message.
+    res.writeHead(418, {'Access-Control-Allow-Origin': '*'});
     res.end('Not found because of proxy error: ' + err);
 });
 
 
-export function createProxyServer(options: Partial<corsAnywhereRequestStateOptions>, port: number) {
+export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: number, proxyOptions?: Partial<ServerOptions>) {
     let server: Server;
+    let handler: (req: IncomingMessage, res: ServerResponse) => void;
+
+    if (proxyOptions) {
+        const newProxyServer = httpProxy.createServer(proxyOptions);
+        newProxyServer.on('error', (err, _, res) => {
+            if (res.headersSent) {
+                if (!res.writableEnded) {
+                    res.end();
+                }
+                return;
+            }
+            const headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res.getHeaders() || {});
+            headerNames.forEach((name) => res.removeHeader(name));
+            // Use the unfamous teapot HTTP code.
+            // To determine the error type inside the test message.
+            res.writeHead(418, {'Access-Control-Allow-Origin': '*'});
+            res.end('Not found because of proxy error: ' + err);
+        });
+        handler = getHandler(options, newProxyServer);
+    } else {
+        handler = getHandler(options, proxyServer);
+    }
 
     function start() {
-        server = createServer(getHandler(options, proxyServer)).listen(port);
+        server = createServer((req, res) => {
+            req.url = req.url.slice(1);
+            handler(req, res);
+        }).listen(port);
+        server.on('error', (err) => {
+            console.log(err);
+        });
+
     }
 
     function close() {
