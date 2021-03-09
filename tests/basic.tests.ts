@@ -828,7 +828,6 @@ describe('httpProxyOptions.getProxyForUrl', () => {
         mockRequests();
         // Using a real server instead of a mock because Nock doesn't can't mock proxies.
         proxy_server = createServer((req, res) => {
-            debugger;
             res.end(req.method + ' Host=' + req.headers.host);
         });
         proxy_server.listen(4044, '0.0.0.0');

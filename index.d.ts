@@ -84,7 +84,7 @@ interface RateLimitOptions {
      * Sites to whitelist.
      * Default: []
      */
-    sites: string[];
+    sites: (string|RegExp)[];
 }
 
 export declare function createRateLimitChecker(options: Partial<RateLimitOptions>): (host: string) => boolean;

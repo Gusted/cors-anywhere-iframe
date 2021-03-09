@@ -128,7 +128,6 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, proxy
 
     const proxyThroughUrl = req.corsAnywhereRequestState.getProxyForUrl(location.href);
     if (proxyThroughUrl) {
-        debugger;
         proxyOptions.target = proxyThroughUrl;
         // If a proxy URL was set, req.url must be an absolute URL. Then the request will not be sent
         // directly to the proxied URL, but through another proxy.
