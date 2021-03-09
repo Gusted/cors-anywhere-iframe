@@ -46,6 +46,7 @@
     "update-top-level": "node tasks/update-top-level.js",
     "test": "jest --config=tests/jest.config.js",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest --config=tests/jest.config.js --runInBand --no-cache --watch",
+    "test:trace-warnings": "node --trace-warnings ./node_modules/jest/bin/jest --config=tests/jest.config.js",
     "test:ci": "jest --config=tests/jest.config.js --runInBand"
   },
   "engines": {

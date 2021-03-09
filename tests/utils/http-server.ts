@@ -26,8 +26,9 @@ export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: n
     let server: Server;
     let handler: (req: IncomingMessage, res: ServerResponse) => void;
 
+    let newProxyServer: httpProxy;
     if (proxyOptions) {
-        const newProxyServer = httpProxy.createServer(proxyOptions);
+        newProxyServer = httpProxy.createServer(proxyOptions);
         newProxyServer.on('error', (err, _, res) => {
             if (res.headersSent) {
                 if (!res.writableEnded) {
@@ -42,25 +43,29 @@ export function createProxyServer(options: Partial<CorsAnywhereOptions>, port: n
             res.writeHead(418, {'Access-Control-Allow-Origin': '*'});
             res.end('Not found because of proxy error: ' + err);
         });
-        handler = getHandler(options, newProxyServer);
-    } else {
-        handler = getHandler(options, proxyServer);
     }
+    handler = getHandler(options, newProxyServer || proxyServer);
 
     function start() {
+        if (server) {
+            console.warn('Possible memory leak!\nBecause we are overwriting an server that is not closed!');
+        }
         server = createServer((req, res) => {
             req.url = req.url.slice(1);
             handler(req, res);
         }).listen(port);
-        server.on('error', (err) => {
-            console.log(err);
-        });
 
     }
 
     function close() {
+        process.removeAllListeners('exit');
+        process.removeAllListeners('SIGINT');
         if (!server) {
             return;
+        }
+        if (newProxyServer) {
+            newProxyServer.removeAllListeners('error');
+            newProxyServer.close();
         }
         server.close((err) => {
             if (err) {
