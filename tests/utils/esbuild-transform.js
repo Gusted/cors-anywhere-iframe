@@ -9,16 +9,13 @@ module.exports = {
         const result = transformSync(content, {
             loader: 'ts',
             format: 'cjs',
-            target: 'es2019',
-            sourcemap: 'external',
+            target: 'es2020',
             banner: '"use strict";',
+            minifySyntax: true,
         });
         return {
             code: result.code,
-            map: result.map ? {
-                ...JSON.parse(result.map),
-                sourcesContent: null,
-            } : ''
+            map: ''
         };
     }
 };
