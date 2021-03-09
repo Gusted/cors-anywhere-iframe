@@ -5,8 +5,6 @@ import type {Server} from 'http';
 import {createServer} from 'http';
 import mockRequests, {disableMocking} from './utils/mock-requests';
 import assert from 'assert';
-import { enableNetConnect } from 'nock/types';
-
 
 declare module 'supertest' {
     interface Test {
@@ -208,7 +206,7 @@ describe('Basic functionality', () => {
             .expect(302, 'redirecting ad infinitum...', done);
     });
 
-    it('POST with 302 redirect should be followed', function (done) {
+    it('POST with 302 redirect should be followed', (done) => {
         request(server)
             .post('/example.com/redirectpost')
             .redirects(0)
@@ -220,7 +218,7 @@ describe('Basic functionality', () => {
             .expect(200, 'post target', done);
     });
 
-    it('GET with 302 redirect without Location header should not be followed', function (done) {
+    it('GET with 302 redirect without Location header should not be followed', (done) => {
     // There is nothing to follow, so let the browser decide what to do with it.
         request(server)
             .get('/example.com/redirectwithoutlocation')
@@ -232,7 +230,7 @@ describe('Basic functionality', () => {
             .expect(302, 'maybe found', done);
     });
 
-    it('GET with 302 redirect to an invalid Location should not be followed', function (done) {
+    it('GET with 302 redirect to an invalid Location should not be followed', (done) => {
     // There is nothing to follow, so let the browser decide what to do with it.
         request(server)
             .get('/example.com/redirectinvalidlocation')
@@ -245,7 +243,7 @@ describe('Basic functionality', () => {
             .expect(302, 'redirecting to junk...', done);
     });
 
-    it('POST with 307 redirect should not be handled', function (done) {
+    it('POST with 307 redirect should not be handled', (done) => {
     // Because of implementation difficulties (having to keep the request body
     // in memory), handling HTTP 307/308 redirects is deferred to the requestor.
         request(server)
@@ -378,7 +376,7 @@ describe('Proxy errors', () => {
 });
 
 
-describe('originBlacklist', function () {
+describe('originBlacklist', () => {
     let server: Server;
     let cors_anywhere: {
         close: () => void;
@@ -480,7 +478,7 @@ describe('checkRateLimit', () => {
     };
     beforeAll(() => {
         mockRequests();
-    })
+    });
     afterAll(() => {
         disableMocking();
     });
