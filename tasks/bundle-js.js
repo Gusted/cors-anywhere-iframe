@@ -6,7 +6,7 @@ async function bundleJS({release}) {
         entryPoints: ['src/cors-anywhere-iframe.ts'],
         bundle: true,
         charset: 'utf8',
-        banner: '"use strict";',
+        banner: {js: '"use strict";'},
         platform: 'node',
         outfile: 'dist/cors-anywhere-iframe.js',
         external: ['http-proxy', 'proxy-from-env'],
