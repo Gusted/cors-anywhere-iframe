@@ -29,7 +29,7 @@
     "@types/proxy-from-env": "1.0.1",
     "@types/supertest": "2.0.10",
     "@typescript-eslint/eslint-plugin": "4.16.1",
-    "@typescript-eslint/parser": "4.16.1",
+    "@typescript-eslint/parser": "4.17.0",
     "esbuild": "0.8.57",
     "eslint": "7.21.0",
     "eslint-plugin-unicorn": "28.0.2",
