@@ -27,7 +27,7 @@ function createRateLimitChecker(options) {
   options = {maxRequestsPerPeriod: 10, periodInMinutes: 1, sites: [], ...options};
   let {sites, periodInMinutes, maxRequestsPerPeriod} = options, hostPatternRegExps = [];
   sites && sites.length > 0 && sites.forEach((host) => {
-    typeof host == "string" ? (host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*"), hostPatternRegExps.push(new RegExp(`^${host}(?![A-Za-z0-9])`, "i"))) : hostPatternRegExps.push(new RegExp(`^${host.source}(?![A-Za-z0-9.])`, "i"));
+    typeof host == "string" ? (host = host.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&").replace(/-/g, "\\x2d").replace(/\\\*/g, "[\\s\\S]*"), hostPatternRegExps.push(new RegExp(`^${host}(?![A-Za-z0-9.])`, "i"))) : hostPatternRegExps.push(new RegExp(`^${host.source}(?![A-Za-z0-9.])`, "i"));
   });
   let accessedHosts = new Map();
   setInterval(() => {
