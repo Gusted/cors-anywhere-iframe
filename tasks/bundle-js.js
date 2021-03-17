@@ -9,7 +9,7 @@ async function bundleJS({release}) {
         banner: {js: '"use strict";'},
         platform: 'node',
         outfile: 'dist/cors-anywhere-iframe.js',
-        external: ['http-proxy', 'proxy-from-env'],
+        external: ['http-proxy'],
         minifySyntax: release,
     });
 }

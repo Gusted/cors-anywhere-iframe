@@ -48,8 +48,41 @@ function createRateLimitChecker(options) {
   };
 }
 
+// src/proxy-from-env.ts
+var DEFAULT_PORTS = {
+  ftp: 21,
+  gopher: 70,
+  http: 80,
+  https: 443,
+  ws: 80,
+  wss: 443
+};
+function getProxyForUrl(url) {
+  let parsedUrl = new URL(url), {protocol, host} = parsedUrl, port = parsedUrl.port;
+  if (!host || !protocol)
+    return null;
+  protocol = protocol.split(":", 1)[0], host = host.replace(/:\d*$/, "");
+  let parsedPort = parseInt(port) || DEFAULT_PORTS[protocol] || 0;
+  if (!shouldProxy(host, parsedPort))
+    return null;
+  let proxy = getEnv("npm_config_" + protocol + "_proxy") || getEnv(protocol + "_proxy") || getEnv("npm_config_proxy") || getEnv("all_proxy");
+  return proxy && proxy.indexOf("://") === -1 && (proxy = protocol + "://" + proxy), proxy;
+}
+function shouldProxy(hostname, port) {
+  let NO_PROXY = (getEnv("npm_config_no_proxy") || getEnv("no_proxy")).toLowerCase();
+  return NO_PROXY ? NO_PROXY === "*" ? !1 : NO_PROXY.split(/[\s,]/).every((proxy) => {
+    if (!proxy)
+      return !0;
+    let parsedProxy = proxy.match(/^(.+):(\d+)$/), parsedProxyHostname = parsedProxy ? parsedProxy[1] : proxy, parsedProxyPort = parsedProxy ? parseInt(parsedProxy[2]) : 0;
+    return parsedProxyPort && parsedProxyPort !== port ? !0 : /^[*.]/.test(parsedProxyHostname) ? (parsedProxyHostname.charAt(0) === "*" && (parsedProxyHostname = parsedProxyHostname.slice(1)), !hostname.endsWith(parsedProxyHostname)) : hostname !== parsedProxyHostname;
+  }) : !0;
+}
+function getEnv(key) {
+  return process.env[key.toLowerCase()] || process.env[key.toUpperCase()] || "";
+}
+
 // src/cors-anywhere-iframe.ts
-var import_proxy_from_env = __toModule(require("proxy-from-env")), import_url = __toModule(require("url")), import_zlib = __toModule(require("zlib")), import_util = __toModule(require("util"));
+var import_url = __toModule(require("url")), import_zlib = __toModule(require("zlib")), import_util = __toModule(require("util"));
 function isValidHostName(hostname) {
   return regexp_top_level_domain_default.test(hostname) || (0, import_net.isIPv4)(hostname) || (0, import_net.isIPv6)(hostname);
 }
@@ -163,7 +196,7 @@ function parseURL(req_url) {
 }
 function getHandler(options, proxy) {
   let corsAnywhere = {
-    getProxyForUrl: import_proxy_from_env.getProxyForUrl,
+    getProxyForUrl,
     maxRedirects: 5,
     originBlacklist: [],
     originWhitelist: [],

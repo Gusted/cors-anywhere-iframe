@@ -60,9 +60,10 @@ process.memoryUsage();
 let heapUsedStart = 0;
 function getMemoryUsage(callback) {
     // Note: Requires --expose-gc
-    // 6 is the minimum amount of gc() calls before calling gc() again does not
+    // 5 is the minimum amount of gc() calls before calling gc() again does not
     // reduce memory any more.
-    for (let i = 0; i < 6; ++i) {
+    let i = 5;
+    while (i--) {
         global.gc();
     }
     callback(process.memoryUsage().heapUsed / 1024 / 1024);

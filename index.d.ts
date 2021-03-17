@@ -5,7 +5,7 @@ import httpProxy from "http-proxy";
 interface CorsAnywhereOptions {
     /**
      * Function that specifies the proxy to use.
-     * Default: npm package proxy-from-env
+     * Default: env checking
      */
     getProxyForUrl: (url: string | Url) => string;
 

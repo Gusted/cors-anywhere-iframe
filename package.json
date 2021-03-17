@@ -18,15 +18,13 @@
     "index.d.ts"
   ],
   "dependencies": {
-    "http-proxy": "1.18.1",
-    "proxy-from-env": "1.1.0"
+    "http-proxy": "1.18.1"
   },
   "devDependencies": {
     "@sinonjs/fake-timers": "7.0.2",
     "@types/http-proxy": "1.17.5",
     "@types/jest": "26.0.20",
     "@types/node": "14.14.33",
-    "@types/proxy-from-env": "1.0.1",
     "@types/supertest": "2.0.10",
     "@typescript-eslint/eslint-plugin": "4.17.0",
     "@typescript-eslint/parser": "4.17.0",
@@ -47,7 +45,7 @@
     "test": "jest --config=tests/jest.config.js",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest --config=tests/jest.config.js --runInBand --no-cache --watch",
     "test:ci": "jest --config=tests/jest.config.js --runInBand",
-    "test:memory": "jest --config=tests/memory/jest.config.js --runInBand",
+    "test:memory": "yarn run release & jest --config=tests/memory/jest.config.js --runInBand",
     "test:trace-warnings": "node --trace-warnings ./node_modules/jest/bin/jest --config=tests/jest.config.js"
   },
   "engines": {

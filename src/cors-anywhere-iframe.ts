@@ -1,7 +1,7 @@
 import {isIPv4, isIPv6} from 'net';
 import regexp_tld from './regexp-top-level-domain';
 import createRateLimiter from './rate-limit';
-import {getProxyForUrl} from 'proxy-from-env';
+import {getProxyForUrl} from './proxy-from-env';
 import {URL} from 'url';
 import zlib from 'zlib';
 import {TextDecoder} from 'util';
