@@ -1,6 +1,6 @@
 {
   "name": "cors-anywhere-iframe",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "CORS Anywhere is a reverse proxy which adds CORS headers to the proxied request. Request URL is taken from the path. Optimized from IFrame usage.",
   "license": "MIT",
   "author": "Gusted <williamzijl7@hotmail.com>",
