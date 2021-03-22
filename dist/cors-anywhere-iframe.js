@@ -260,3 +260,8 @@ Refer to documenation.`);
   };
 }
 var createRateLimitChecker2 = createRateLimitChecker;
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  createRateLimitChecker,
+  getHandler
+});
