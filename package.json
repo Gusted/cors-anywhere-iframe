@@ -29,7 +29,7 @@
     "@typescript-eslint/eslint-plugin": "4.20.0",
     "@typescript-eslint/parser": "4.19.0",
     "esbuild": "0.9.6",
-    "eslint": "7.22.0",
+    "eslint": "7.23.0",
     "eslint-plugin-unicorn": "29.0.0",
     "jest": "26.6.3",
     "nock": "13.0.11",
