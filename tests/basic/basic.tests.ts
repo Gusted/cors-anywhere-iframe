@@ -737,22 +737,6 @@ describe('Access-Control-Max-Age not set', () => {
         disableMocking();
     });
 
-    it('OPTIONS / corsMaxAge disabled', (done) => {
-        request(cors_anywhere.server)
-            .options('/')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expectNoHeader('Access-Control-Max-Age')
-            .expect(200, '', done);
-    });
-
-    it('OPTIONS /example.com corsMaxAge disabled', (done) => {
-        request(cors_anywhere.server)
-            .options('/example.com')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expectNoHeader('Access-Control-Max-Age')
-            .expect(200, '', done);
-    });
-
     it('GET /', (done) => {
         request(cors_anywhere.server)
             .get('/')

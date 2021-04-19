@@ -58,7 +58,7 @@ function isValidHostName(hostname: string): boolean {
  */
 function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessage): http.IncomingHttpHeaders {
     headers['access-control-expose-headers'] = Object.keys(headers).filter((header) =>
-        /^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/.test(header)
+        !/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/.test(header)
     ).join(',');
     headers['access-control-allow-origin'] = '*';
     if (request.headers['access-control-request-method']) {
