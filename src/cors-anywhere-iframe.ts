@@ -57,16 +57,9 @@ function isValidHostName(hostname: string): boolean {
  * Adds CORS headers to the response headers.
  */
 function withCORS(headers: http.IncomingHttpHeaders, request: http.IncomingMessage): http.IncomingHttpHeaders {
-    if (request.method === 'OPTIONS') {
-        const corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
-        if (corsMaxAge) {
-            headers['access-control-max-age'] = String(corsMaxAge);
-        }
-    } else {
-        headers['access-control-expose-headers'] = Object.keys(headers).filter((header) =>
-            header.match(/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/) ? false : header
-        ).join(',');
-    }
+    headers['access-control-expose-headers'] = Object.keys(headers).filter((header) =>
+        /^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/.test(header)
+    ).join(',');
     headers['access-control-allow-origin'] = '*';
     if (request.headers['access-control-request-method']) {
         headers['access-control-allow-methods'] = request.headers['access-control-request-method'];
@@ -380,12 +373,6 @@ export function getHandler(options: Partial<CorsAnywhereOptions>, proxy: httpPro
         };
 
         const cors_headers = withCORS({}, req);
-        if (req.method === 'OPTIONS') {
-            // Pre-flight request. Reply successfully:
-            res.writeHead(200, cors_headers);
-            res.end();
-            return;
-        }
         req.url = decodeURIComponent(req.url);
         const location = parseURL(req.url);
 

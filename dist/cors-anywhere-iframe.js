@@ -87,12 +87,7 @@ function isValidHostName(hostname) {
   return regexp_top_level_domain_default.test(hostname) || (0, import_net.isIPv4)(hostname) || (0, import_net.isIPv6)(hostname);
 }
 function withCORS(headers, request) {
-  if (request.method === "OPTIONS") {
-    let corsMaxAge = request.corsAnywhereRequestState.corsMaxAge;
-    corsMaxAge && (headers["access-control-max-age"] = String(corsMaxAge));
-  } else
-    headers["access-control-expose-headers"] = Object.keys(headers).filter((header) => header.match(/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/) ? !1 : header).join(",");
-  return headers["access-control-allow-origin"] = "*", request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers;
+  return headers["access-control-expose-headers"] = Object.keys(headers).filter((header) => /^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/.test(header)).join(","), headers["access-control-allow-origin"] = "*", request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers;
 }
 function proxyRequest(req, res, proxy) {
   let location = req.corsAnywhereRequestState.location;
@@ -217,10 +212,6 @@ function getHandler(options, proxy) {
       onReceiveResponseBody: corsAnywhere.onReceiveResponseBody
     };
     let cors_headers = withCORS({}, req);
-    if (req.method === "OPTIONS") {
-      res.writeHead(200, cors_headers), res.end();
-      return;
-    }
     req.url = decodeURIComponent(req.url);
     let location = parseURL(req.url);
     if (!location) {

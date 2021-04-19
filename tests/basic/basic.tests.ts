@@ -252,33 +252,6 @@ describe('Basic functionality', () => {
             .expect(307, 'redirecting...', done);
     });
 
-    it('OPTIONS /', (done) => {
-        request(cors_anywhere.server)
-            .options('/')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expect(200, '', done);
-    });
-
-    it('OPTIONS / with Access-Control-Request-Method / -Headers', (done) => {
-        request(cors_anywhere.server)
-            .options('/')
-            .set('Access-Control-Request-Method', 'DELETE')
-            .set('Access-Control-Request-Headers', 'X-Tralala')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expect('Access-Control-Allow-Methods', 'DELETE')
-            .expect('Access-Control-Allow-Headers', 'X-Tralala')
-            .expect(200, '', done);
-    });
-
-    it('OPTIONS //bogus', (done) => {
-    // The preflight request always succeeds, regardless of whether the request
-    // is valid.
-        request(cors_anywhere.server)
-            .options('//bogus')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expect(200, '', done);
-    });
-
     it('X-Forwarded-* headers', (done) => {
         request(cors_anywhere.server)
             .get('/example.com/echoheaders')
@@ -727,22 +700,6 @@ describe('Access-Control-Max-Age set', function () {
     afterAll(() => {
         cors_anywhere.close();
         disableMocking();
-    });
-
-    it('OPTIONS /', (done) => {
-        request(cors_anywhere.server)
-            .options('/')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expect('Access-Control-Max-Age', '600')
-            .expect(200, '', done);
-    });
-
-    it('OPTIONS /example.com', (done) => {
-        request(cors_anywhere.server)
-            .options('/example.com')
-            .expect('Access-Control-Allow-Origin', '*')
-            .expect('Access-Control-Max-Age', '600')
-            .expect(200, '', done);
     });
 
     it('GET / no Access-Control-Max-Age on GET', (done) => {
