@@ -1,5 +1,8 @@
 "use strict";
-var __create = Object.create, __defProp = Object.defineProperty, __getProtoOf = Object.getPrototypeOf, __hasOwnProp = Object.prototype.hasOwnProperty, __getOwnPropNames = Object.getOwnPropertyNames, __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __create = Object.create, __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf, __hasOwnProp = Object.prototype.hasOwnProperty;
 var __markAsModule = (target) => __defProp(target, "__esModule", {value: !0});
 var __export = (target, all) => {
   for (var name in all)
@@ -87,7 +90,7 @@ function isValidHostName(hostname) {
   return regexp_top_level_domain_default.test(hostname) || (0, import_net.isIPv4)(hostname) || (0, import_net.isIPv6)(hostname);
 }
 function withCORS(headers, request) {
-  return headers["access-control-expose-headers"] = Object.keys(headers).filter((header) => /^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/.test(header)).join(","), headers["access-control-allow-origin"] = "*", request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers;
+  return headers["access-control-expose-headers"] = Object.keys(headers).filter((header) => !/^cache-control|content-language|content-length|content-type|expires|last-modified|pragma$/.test(header)).join(","), headers["access-control-allow-origin"] = "*", request.headers["access-control-request-method"] && (headers["access-control-allow-methods"] = request.headers["access-control-request-method"], delete request.headers["access-control-request-method"]), request.headers["access-control-request-headers"] && (headers["access-control-allow-headers"] = request.headers["access-control-request-headers"], delete request.headers["access-control-request-headers"]), headers;
 }
 function proxyRequest(req, res, proxy) {
   let location = req.corsAnywhereRequestState.location;
