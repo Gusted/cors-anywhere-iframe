@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@sinonjs/fake-timers": "7.0.5",
-    "@types/http-proxy": "1.17.5",
+    "@types/http-proxy": "1.17.6",
     "@types/jest": "26.0.23",
     "@types/node": "15.0.2",
     "@types/supertest": "2.0.11",
