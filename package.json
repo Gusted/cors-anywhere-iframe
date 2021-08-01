@@ -27,7 +27,7 @@
     "@types/node": "15.12.5",
     "@types/supertest": "2.0.11",
     "@typescript-eslint/eslint-plugin": "4.28.1",
-    "@typescript-eslint/parser": "4.28.1",
+    "@typescript-eslint/parser": "4.28.5",
     "esbuild": "0.12.13",
     "eslint": "7.29.0",
     "eslint-plugin-unicorn": "34.0.1",
